@@ -4,12 +4,13 @@ import { signOut } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 
-export default function DashboardPage() {
+export function Navbar() {
   return (
-    <div className="p-10">
-      <h1 className="mb-4 text-3xl font-bold">Dashboard</h1>
+    <header className="flex h-16 items-center justify-between border-b bg-background px-6">
+      <h2 className="text-lg font-semibold">Dashboard</h2>
 
       <Button
+        variant="outline"
         onClick={() =>
           signOut({
             callbackUrl: "/login",
@@ -18,6 +19,6 @@ export default function DashboardPage() {
       >
         Logout
       </Button>
-    </div>
+    </header>
   );
 }
