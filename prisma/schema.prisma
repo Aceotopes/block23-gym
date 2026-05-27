@@ -64,3 +64,94 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+//    ===========================
+//      BUSINESS DOMAIN MODELS
+//    ===========================
+
+// MEMBER TABLE
+model Member {
+  id                String          @id @default(cuid())
+
+  firstName         String
+  lastName          String
+
+  phone             String
+
+  gender            Gender
+
+  membershipStart   DateTime
+  membershipEnd     DateTime
+
+  status            MemberStatus    @default(ACTIVE)
+
+  attendances       Attendance[]
+  payments          Payment[]
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model Attendance {
+  id                String            @id @default(cuid())
+
+  memberId          String?
+  member            Member?           @relation(fields: [memberId], references: [id])
+
+  guestName         String?
+
+  type              AttendanceType
+
+  timeIn            DateTime          @default(now())
+  timeOut           DateTime?
+
+  payment           Payment?
+
+  createdAt         DateTime          @default(now())
+}
+
+model Payment {
+  id                String            @id @default(cuid())
+
+  memberId          String?
+  member            Member?           @relation(fields: [memberId], references: [id])
+
+  attendanceId      String?           @unique
+  attendance        Attendance?       @relation(fields: [attendanceId], references: [id])
+
+  amount            Decimal           @db.Decimal(10, 2)
+
+  type              PaymentType
+  status            PaymentStatus
+
+  createdAt         DateTime          @default(now())
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+}
+
+enum AttendanceType {
+  MEMBER
+  WALK_IN
+}
+
+enum PaymentType {
+  MEMBERSHIP
+  WALK_IN
+}
+
+enum PaymentStatus {
+  PAID
+  UNPAID
+  PENDING
+  FAILED
+  REFUNDED
+}
