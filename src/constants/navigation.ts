@@ -14,8 +14,8 @@ export const navigation = [
   },
 
   {
-    title: "Members",
-    href: "/members",
+    title: "Clients",
+    href: "/clients",
     icon: Users,
   },
 

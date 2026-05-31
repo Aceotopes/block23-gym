@@ -9,8 +9,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-64 border-r bg-background md:flex md:flex-col">
-      <div className="border-b p-6">
+    <aside className="hidden w-58 border-r bg-background md:flex md:flex-col">
+      <div className="border-b p-5">
         <h1 className="text-xl font-bold">Block23 Gym</h1>
       </div>
 

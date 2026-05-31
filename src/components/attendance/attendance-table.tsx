@@ -12,11 +12,15 @@ import { TimeOutButton } from "./time-out-button";
 type Attendance = {
   id: string;
 
-  guestName: string | null;
-
-  type: string;
-
   timeIn: Date;
+
+  client: {
+    firstName: string;
+
+    lastName: string | null;
+
+    phone: string | null;
+  };
 };
 
 type Props = {
@@ -31,7 +35,7 @@ export function AttendanceTable({ attendances }: Props) {
           <TableRow>
             <TableHead>Name</TableHead>
 
-            <TableHead>Type</TableHead>
+            <TableHead>Phone</TableHead>
 
             <TableHead>Time In</TableHead>
 
@@ -42,9 +46,11 @@ export function AttendanceTable({ attendances }: Props) {
         <TableBody>
           {attendances.map((attendance) => (
             <TableRow key={attendance.id}>
-              <TableCell>{attendance.guestName ?? "Member"}</TableCell>
+              <TableCell>
+                {attendance.client.firstName} {attendance.client.lastName}
+              </TableCell>
 
-              <TableCell>{attendance.type}</TableCell>
+              <TableCell>{attendance.client.phone ?? "-"}</TableCell>
 
               <TableCell>{attendance.timeIn.toLocaleString()}</TableCell>
 

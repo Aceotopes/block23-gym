@@ -10,6 +10,10 @@ export default async function AttendancePage() {
       timeOut: null,
     },
 
+    include: {
+      client: true,
+    },
+
     orderBy: {
       timeIn: "desc",
     },

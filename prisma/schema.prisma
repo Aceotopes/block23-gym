@@ -70,78 +70,64 @@ model VerificationToken {
 //    ===========================
 
 // MEMBER TABLE
-model Member {
-  id                String          @id @default(cuid())
+model Client {
+  id              String          @id @default(cuid())
 
-  firstName         String
-  lastName          String
+  firstName       String
+  lastName        String?
 
-  phone             String
+  phone           String?
 
-  gender            Gender
+  attendances     Attendance[]
+  payments        Payment[]
+  memberships     Membership[]
 
-  membershipStart   DateTime
-  membershipEnd     DateTime
-
-  status            MemberStatus    @default(ACTIVE)
-
-  attendances       Attendance[]
-  payments          Payment[]
-
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model Attendance {
-  id                String            @id @default(cuid())
+  id              String          @id @default(cuid())
 
-  memberId          String?
-  member            Member?           @relation(fields: [memberId], references: [id])
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
 
-  guestName         String?
+  timeIn          DateTime        @default(now())
+  timeOut         DateTime?
 
-  type              AttendanceType
-
-  timeIn            DateTime          @default(now())
-  timeOut           DateTime?
-
-  payment           Payment?
-
-  createdAt         DateTime          @default(now())
+  createdAt       DateTime        @default(now())
 }
 
 model Payment {
-  id                String            @id @default(cuid())
+  id              String          @id @default(cuid())
 
-  memberId          String?
-  member            Member?           @relation(fields: [memberId], references: [id])
+  clientId        String
+  client          Client          @relation(fields: [clientId], references: [id])
 
-  attendanceId      String?           @unique
-  attendance        Attendance?       @relation(fields: [attendanceId], references: [id])
+  amount          Decimal         @db.Decimal(10, 2)
 
-  amount            Decimal           @db.Decimal(10, 2)
+  type            PaymentType
+  status          PaymentStatus
 
-  type              PaymentType
-  status            PaymentStatus
-
-  createdAt         DateTime          @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
-enum Gender {
-  MALE
-  FEMALE
+model Membership {
+  id              String              @id @default(cuid())
+
+  clientId        String
+  client          Client              @relation(fields: [clientId], references: [id])
+
+  startDate       DateTime
+  endDate         DateTime
+
+  status          MembershipStatus
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }
 
-enum MemberStatus {
-  ACTIVE
-  INACTIVE
-  EXPIRED
-}
-
-enum AttendanceType {
-  MEMBER
-  WALK_IN
-}
 
 enum PaymentType {
   MEMBERSHIP
@@ -150,8 +136,13 @@ enum PaymentType {
 
 enum PaymentStatus {
   PAID
-  UNPAID
   PENDING
   FAILED
   REFUNDED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
 }

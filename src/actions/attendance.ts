@@ -2,22 +2,39 @@
 
 import { prisma } from "@/lib/prisma";
 
-export async function createWalkInAttendance(guestName: string) {
-  if (!guestName.trim()) {
-    throw new Error("Guest name is required");
+export async function createWalkInAttendance(
+  firstName: string,
+  lastName?: string,
+  phone?: string
+) {
+  if (!firstName.trim()) {
+    throw new Error("First name is required");
   }
 
   await prisma.$transaction(async (tx) => {
-    const attendance = await tx.attendance.create({
+    // Create client
+
+    const client = await tx.client.create({
       data: {
-        guestName,
-        type: "WALK_IN",
+        firstName,
+        lastName,
+        phone,
       },
     });
 
+    // Create attendance
+
+    await tx.attendance.create({
+      data: {
+        clientId: client.id,
+      },
+    });
+
+    // Create payment
+
     await tx.payment.create({
       data: {
-        attendanceId: attendance.id,
+        clientId: client.id,
 
         amount: 100,
 

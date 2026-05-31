@@ -1,24 +1,33 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { createWalkInAttendance } from "@/actions/attendance";
+
 import { useRouter } from "next/navigation";
+
+import { createWalkInAttendance } from "@/actions/attendance";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function AttendanceForm() {
-  const [guestName, setGuestName] = useState("");
+  const router = useRouter();
+
+  const [firstName, setFirstName] = useState("");
+
+  const [lastName, setLastName] = useState("");
+
+  const [phone, setPhone] = useState("");
 
   const [isPending, startTransition] = useTransition();
 
-  const router = useRouter();
-
   function handleSubmit() {
     startTransition(async () => {
-      await createWalkInAttendance(guestName);
+      await createWalkInAttendance(firstName, lastName, phone);
 
-      setGuestName("");
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+
       router.refresh();
     });
   }
@@ -26,9 +35,21 @@ export function AttendanceForm() {
   return (
     <div className="max-w-md space-y-4 rounded-xl border bg-background p-6">
       <Input
-        placeholder="Guest name"
-        value={guestName}
-        onChange={(event) => setGuestName(event.target.value)}
+        placeholder="First name"
+        value={firstName}
+        onChange={(event) => setFirstName(event.target.value)}
+      />
+
+      <Input
+        placeholder="Last name (optional)"
+        value={lastName}
+        onChange={(event) => setLastName(event.target.value)}
+      />
+
+      <Input
+        placeholder="Phone (optional)"
+        value={phone}
+        onChange={(event) => setPhone(event.target.value)}
       />
 
       <Button onClick={handleSubmit} disabled={isPending}>
