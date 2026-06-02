@@ -1,15 +1,19 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
-export async function findClientByPhone(phone: string) {
-  return prisma.client.findFirst({
-    where: {
-      phone,
-    },
+type CreateClientInput = {
+  firstName: string;
+  lastName: string;
+  phone?: string;
 
-    include: {
-      memberships: true,
-    },
-  });
+  registrationType: "WALK_IN" | "MEMBER";
+
+  durationInDays?: number;
+  amountPaid?: number;
+};
+
+export async function createClient(data: CreateClientInput) {
+  // implementation later
 }

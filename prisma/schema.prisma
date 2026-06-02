@@ -74,7 +74,7 @@ model Client {
   id              String          @id @default(cuid())
 
   firstName       String
-  lastName        String?
+  lastName        String
 
   phone           String?
 
@@ -84,6 +84,10 @@ model Client {
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+
+  @@index([firstName])
+  @@index([lastName])
+  @@index([phone])
 }
 
 model Attendance {
@@ -92,10 +96,15 @@ model Attendance {
   clientId        String
   client          Client          @relation(fields: [clientId], references: [id])
 
+  visitType       VisitType
+
   timeIn          DateTime        @default(now())
   timeOut         DateTime?
 
   createdAt       DateTime        @default(now())
+
+  @@index([clientId])
+  @@index([timeIn])
 }
 
 model Payment {
@@ -104,7 +113,7 @@ model Payment {
   clientId        String
   client          Client          @relation(fields: [clientId], references: [id])
 
-  amount          Decimal         @db.Decimal(10, 2)
+  amount          Decimal         @db.Decimal(10,2)
 
   type            PaymentType
   status          PaymentStatus
@@ -119,15 +128,37 @@ model Membership {
   clientId        String
   client          Client              @relation(fields: [clientId], references: [id])
 
+  durationInDays  Int
+
+  amountPaid      Decimal             @db.Decimal(10,2)
+
   startDate       DateTime
   endDate         DateTime
 
-  status          MembershipStatus
+  status          MembershipStatus    @default(ACTIVE)
 
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
+
+  @@index([clientId])
+  @@index([status])
 }
 
+model GymSettings {
+  id                     String    @id
+
+  defaultMonthlyFee      Decimal   @db.Decimal(10,2) @default(1200)
+
+  defaultWalkInFee       Decimal   @db.Decimal(10,2) @default(100)
+
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+}
+
+enum VisitType {
+  MEMBER
+  WALK_IN
+}
 
 enum PaymentType {
   MEMBERSHIP
