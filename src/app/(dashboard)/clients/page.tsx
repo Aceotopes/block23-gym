@@ -6,7 +6,11 @@ import { CreateClientDialog } from "@/components/clients/create-client-dialog";
 export default async function ClientsPage() {
   const clients = await prisma.client.findMany({
     include: {
-      memberships: true,
+      memberships: {
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
     },
 
     orderBy: {

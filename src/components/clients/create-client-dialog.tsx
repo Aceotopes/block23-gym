@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createWalkInClient } from "@/actions/client";
+import { createWalkInClient, createMember } from "@/actions/client";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,26 +28,94 @@ import { Label } from "@/components/ui/label";
 
 export function CreateClientDialog() {
   async function handleSubmit() {
-    if (registrationType !== "WALK_IN") {
+    setErrors({});
+
+    // FOR FIELD FORM VALIDATION
+    const newErrors: {
+      firstName?: string;
+      lastName?: string;
+    } = {};
+    if (!firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+
+    if (!lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
-    try {
-      await createWalkInClient({
-        firstName,
-        lastName,
-        phone,
-      });
+    // MEMBER REGISTRATION
+    if (registrationType === "MEMBER") {
+      if (registrationType === "MEMBER") {
+        try {
+          setIsSubmitting(true);
 
-      setOpen(false);
+          await createMember({
+            firstName,
+            lastName,
+            phone,
 
-      setFirstName("");
-      setLastName("");
-      setPhone("");
-    } catch (error) {
-      console.error(error);
+            durationInDays,
 
-      alert("Please check form.");
+            amountPaid: totalAmount,
+
+            startDate,
+            endDate,
+          });
+
+          toast.success(`${firstName} ${lastName} registered as a member`);
+
+          setOpen(false);
+
+          setFirstName("");
+          setLastName("");
+          setPhone("");
+
+          setMembershipPlan("ONE_MONTH");
+          setMonthlyFee(1200);
+        } catch (error) {
+          console.error(error);
+
+          toast.error("Failed to register member");
+        } finally {
+          setIsSubmitting(false);
+        }
+
+        return;
+      }
+    }
+
+    // WALK-IN REGISTTRATION
+    if (registrationType === "WALK_IN") {
+      try {
+        setIsSubmitting(true);
+
+        await createWalkInClient({
+          firstName,
+          lastName,
+          phone,
+        });
+
+        toast.success(`${firstName} ${lastName} registered successfully`);
+        setOpen(false);
+
+        setFirstName("");
+        setLastName("");
+        setPhone("");
+      } catch (error) {
+        console.error(error);
+
+        toast.error(
+          "Invalid first name or last name. Only letters and spaces are allowed."
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
     }
   }
   const [open, setOpen] = useState(false);
@@ -53,6 +123,8 @@ export function CreateClientDialog() {
   const [registrationType, setRegistrationType] = useState<
     "WALK_IN" | "MEMBER"
   >("WALK_IN");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   //   TEMP VALUES FOR MEMBERSHIP (HARD CODED. CONNECT TO GYM SETTINGS LATER)
   const [membershipPlan, setMembershipPlan] = useState<
@@ -76,6 +148,12 @@ export function CreateClientDialog() {
 
   const months = durationInDays / 30;
   const totalAmount = monthlyFee * months;
+
+  // FORM VALIDATION
+  const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+  }>({});
 
   useEffect(() => {
     switch (membershipPlan) {
@@ -138,18 +216,47 @@ export function CreateClientDialog() {
                 <Label htmlFor="firstName">First Name</Label>
                 <Input
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => {
+                    setFirstName(e.target.value);
+
+                    if (errors.firstName) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        firstName: undefined,
+                      }));
+                    }
+                  }}
                   placeholder="Juan"
                 />
+
+                {errors.firstName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.firstName}
+                  </p>
+                )}
               </div>
 
               <div>
                 <Label htmlFor="lastName">Last Name</Label>
                 <Input
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => {
+                    setLastName(e.target.value);
+
+                    if (errors.lastName) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        lastName: undefined,
+                      }));
+                    }
+                  }}
                   placeholder="Dela Cruz"
                 />
+                {errors.lastName && (
+                  <p className="text-xs text-destructive mt-1">
+                    {errors.lastName}
+                  </p>
+                )}
               </div>
             </div>
             <div>
@@ -223,7 +330,8 @@ export function CreateClientDialog() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Duration</span>
                       <span>
-                        {months} Month{months > 1 ? "s" : ""}
+                        {months} Month{months > 1 ? "s" : ""} ({durationInDays}
+                        D)
                       </span>
                     </div>
 
@@ -247,10 +355,17 @@ export function CreateClientDialog() {
               Cancel
             </Button>
 
-            <Button onClick={handleSubmit}>
-              {registrationType === "MEMBER"
-                ? "Register Member"
-                : "Register Walk-In"}
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Registering...
+                </>
+              ) : registrationType === "MEMBER" ? (
+                "Register Member"
+              ) : (
+                "Register Walk-In"
+              )}
             </Button>
           </div>
         </div>
