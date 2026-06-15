@@ -74,3 +74,29 @@ export async function createMember(data: CreateMemberInput) {
 
   revalidatePath("/clients");
 }
+
+export async function updateClient(data: {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}) {
+  createClientSchema.parse({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    phone: data.phone,
+  });
+
+  await prisma.client.update({
+    where: {
+      id: data.id,
+    },
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone || null,
+    },
+  });
+
+  revalidatePath("/clients");
+}

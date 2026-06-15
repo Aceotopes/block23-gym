@@ -21,6 +21,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Props = {
   client: {
@@ -71,9 +77,9 @@ export function ViewClientDialog({ client }: Props) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start">
+        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
           View Client
-        </Button>
+        </DropdownMenuItem>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-xl">
@@ -106,7 +112,7 @@ export function ViewClientDialog({ client }: Props) {
                   ? "default"
                   : status === "EXPIRED"
                   ? "destructive"
-                  : "secondary"
+                  : "warning"
               }
             >
               {status}

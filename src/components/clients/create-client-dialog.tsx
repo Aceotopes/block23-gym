@@ -27,6 +27,68 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function CreateClientDialog() {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+
+  // REGISTRATION TYPE
+  const [registrationType, setRegistrationType] = useState<
+    "WALK_IN" | "MEMBER"
+  >("WALK_IN");
+
+  //   TEMP VALUES FOR MEMBERSHIP (HARD CODED. CONNECT TO GYM SETTINGS LATER)
+  const [membershipPlan, setMembershipPlan] = useState<
+    "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS"
+  >("ONE_MONTH");
+  const [durationInDays, setDurationInDays] = useState(30);
+  const [monthlyFee, setMonthlyFee] = useState(1200);
+
+  // MEMBERSHIP SUMMARY
+  const startDate = new Date();
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + durationInDays);
+
+  const formattedStartDate = startDate.toLocaleDateString();
+  const formattedEndDate = endDate.toLocaleDateString();
+
+  const months = durationInDays / 30;
+  const totalAmount = monthlyFee * months;
+
+  // FORM VALIDATION
+  const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+  }>({});
+
+  useEffect(() => {
+    switch (membershipPlan) {
+      case "ONE_MONTH":
+        setDurationInDays(30);
+        break;
+
+      case "TWO_MONTHS":
+        setDurationInDays(60);
+        break;
+
+      case "THREE_MONTHS":
+        setDurationInDays(90);
+        break;
+    }
+  }, [membershipPlan]);
+
+  function resetForm() {
+    setFirstName("");
+    setLastName("");
+    setPhone("");
+
+    setErrors({});
+
+    setMembershipPlan("ONE_MONTH");
+    setMonthlyFee(1200);
+  }
+
   async function handleSubmit() {
     setErrors({});
 
@@ -118,61 +180,18 @@ export function CreateClientDialog() {
       return;
     }
   }
-  const [open, setOpen] = useState(false);
-
-  const [registrationType, setRegistrationType] = useState<
-    "WALK_IN" | "MEMBER"
-  >("WALK_IN");
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  //   TEMP VALUES FOR MEMBERSHIP (HARD CODED. CONNECT TO GYM SETTINGS LATER)
-  const [membershipPlan, setMembershipPlan] = useState<
-    "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS"
-  >("ONE_MONTH");
-  const [durationInDays, setDurationInDays] = useState(30);
-  const [monthlyFee, setMonthlyFee] = useState(1200);
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-
-  // MEMBERSHIP SUMMARY
-  const startDate = new Date();
-
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate() + durationInDays);
-
-  const formattedStartDate = startDate.toLocaleDateString();
-  const formattedEndDate = endDate.toLocaleDateString();
-
-  const months = durationInDays / 30;
-  const totalAmount = monthlyFee * months;
-
-  // FORM VALIDATION
-  const [errors, setErrors] = useState<{
-    firstName?: string;
-    lastName?: string;
-  }>({});
-
-  useEffect(() => {
-    switch (membershipPlan) {
-      case "ONE_MONTH":
-        setDurationInDays(30);
-        break;
-
-      case "TWO_MONTHS":
-        setDurationInDays(60);
-        break;
-
-      case "THREE_MONTHS":
-        setDurationInDays(90);
-        break;
-    }
-  }, [membershipPlan]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
+
+        if (!open) {
+          resetForm();
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <Button>Add Client</Button>
       </DialogTrigger>

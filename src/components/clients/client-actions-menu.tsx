@@ -5,6 +5,7 @@ import { MoreHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ViewClientDialog } from "./view-client-dialog";
+import { EditClientDialog } from "./edit-client-dialog";
 
 import {
   DropdownMenu,
@@ -53,6 +54,8 @@ export function ClientActionsMenu({ client }: Props) {
 
       <DropdownMenuContent align="end">
         <ViewClientDialog client={client} />
+
+        <EditClientDialog client={client} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
