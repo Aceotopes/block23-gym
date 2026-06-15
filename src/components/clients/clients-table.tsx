@@ -9,18 +9,32 @@ import {
 import { CreateMembershipButton } from "./create-membership-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ClientActionsMenu } from "./client-actions-menu";
+
+import { getClientStatus, getClientType } from "@/lib/client-status";
 
 import { format } from "date-fns";
 type Client = {
   id: string;
+
   firstName: string;
-  lastName: string | null;
+  lastName: string;
+
   phone: string | null;
+
   memberships: {
     status: string;
+    startDate: Date;
     endDate: Date;
     createdAt: Date;
+    amountPaid: number;
   }[];
+  attendances: {
+    id: string;
+    timeIn: Date;
+  }[];
+
+  createdAt: Date;
 };
 
 type Props = {
@@ -30,10 +44,10 @@ type Props = {
 // VARIANT MAPPING FOR CLIENT TYPE
 function getTypeVariant(type: string) {
   switch (type) {
-    case "Member":
+    case "MEMBER":
       return "default";
 
-    case "Walk-In":
+    case "WALK_IN":
       return "secondary";
 
     default:
@@ -46,6 +60,9 @@ function getStatusVariant(status: string) {
   switch (status) {
     case "ACTIVE":
       return "default";
+
+    case "INACTIVE":
+      return "warning";
 
     case "EXPIRED":
       return "destructive";
@@ -76,9 +93,10 @@ export function ClientsTable({ clients }: Props) {
         <TableBody>
           {clients.map((client) => {
             const latestMembership = client.memberships[0];
-            const type = latestMembership ? "Member" : "Walk-In";
-            const status = latestMembership?.status ?? "N/A";
             const expiry = latestMembership?.endDate;
+
+            const type = getClientType(Boolean(latestMembership));
+            const status = getClientStatus(client);
 
             return (
               <TableRow key={client.id}>
@@ -89,7 +107,10 @@ export function ClientsTable({ clients }: Props) {
                 <TableCell>{client.phone ?? "-"}</TableCell>
 
                 <TableCell>
-                  <Badge variant={getTypeVariant(type)}>{type}</Badge>
+                  <Badge variant={getTypeVariant(type)}>
+                    {" "}
+                    {type === "MEMBER" ? "Member" : "Walk-In"}
+                  </Badge>
                 </TableCell>
 
                 <TableCell>
@@ -97,13 +118,11 @@ export function ClientsTable({ clients }: Props) {
                 </TableCell>
 
                 <TableCell>
-                  {expiry ? format(expiry, "MMM, dd, yyyy") : "-"}
+                  {expiry ? format(expiry, "MMM, dd, yyyy") : "N/A"}
                 </TableCell>
 
                 <TableCell>
-                  <Button variant="outline" size="sm">
-                    View
-                  </Button>
+                  <ClientActionsMenu client={client} type={type} />
                 </TableCell>
               </TableRow>
             );

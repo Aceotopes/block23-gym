@@ -7,8 +7,27 @@ export default async function ClientsPage() {
   const clients = await prisma.client.findMany({
     include: {
       memberships: {
+        select: {
+          status: true,
+          startDate: true,
+          endDate: true,
+          createdAt: true,
+          amountPaid: true,
+        },
+
         orderBy: {
           createdAt: "desc",
+        },
+      },
+
+      attendances: {
+        select: {
+          id: true,
+          timeIn: true,
+        },
+
+        orderBy: {
+          timeIn: "desc",
         },
       },
     },
@@ -17,6 +36,17 @@ export default async function ClientsPage() {
       createdAt: "desc",
     },
   });
+
+  // PRISMA SCHEMA SERIALIZED FOR AMOUNT PAID
+  const serializedClients = clients.map((client) => ({
+    ...client,
+
+    memberships: client.memberships.map((membership) => ({
+      ...membership,
+
+      amountPaid: Number(membership.amountPaid),
+    })),
+  }));
 
   return (
     <div className="space-y-6">
@@ -27,7 +57,7 @@ export default async function ClientsPage() {
       </div>
 
       <CreateClientDialog />
-      <ClientsTable clients={clients} />
+      <ClientsTable clients={serializedClients} />
     </div>
   );
 }
