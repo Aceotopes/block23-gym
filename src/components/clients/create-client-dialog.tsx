@@ -193,7 +193,7 @@ export function CreateClientDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button>Add Client</Button>
+        <Button className="px-4">Add Client</Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-xl">
