@@ -1,5 +1,6 @@
 "use client";
 
+import { Eye } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,7 @@ export function ViewClientDialog({ client }: Props) {
     <Dialog>
       <DialogTrigger asChild>
         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+          <Eye />
           View Client
         </DropdownMenuItem>
       </DialogTrigger>

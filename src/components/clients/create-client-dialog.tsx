@@ -196,7 +196,7 @@ export function CreateClientDialog() {
         <Button>Add Client</Button>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Register Client</DialogTitle>
           <DialogDescription>
@@ -205,7 +205,7 @@ export function CreateClientDialog() {
         </DialogHeader>
 
         {/* REGISTRATION FORM */}
-        <div className="space-y-6 ">
+        <div className="space-y-3 ">
           <div>
             <Tabs
               value={registrationType}
@@ -220,7 +220,7 @@ export function CreateClientDialog() {
               </TabsList>
             </Tabs>
           </div>
-          <div className="space-y-4 ">
+          <div className="space-y-4 rounded-lg border p-4">
             <div>
               <h3 className="font-medium">Client Information</h3>
 
@@ -288,9 +288,9 @@ export function CreateClientDialog() {
             </div>
           </div>
           {/* MEMBER REGISTRATION */}
-          <div className="space-y-2">
+          <div className="space-y-2 ">
             {registrationType === "MEMBER" && (
-              <div className="space-y-4 border-t pt-4">
+              <div className="space-y-4 rounded-lg border p-4">
                 <div>
                   <h3 className="font-medium">Membership Information</h3>
 
@@ -332,7 +332,7 @@ export function CreateClientDialog() {
                 </div>
 
                 {/* MEMBERSHIP SUMMARY */}
-                <div className="rounded-lg border bg-secondary p-4">
+                <div className="rounded-lg border bg-secondary p-2">
                   <h3 className="font-medium">Membership Summary</h3>
 
                   <div className="space-y-1 text-sm">
@@ -369,7 +369,7 @@ export function CreateClientDialog() {
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 ">
             <Button variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

@@ -6,12 +6,16 @@ import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ViewClientDialog } from "./view-client-dialog";
 import { EditClientDialog } from "./edit-client-dialog";
+import { ConvertToMemberDialog } from "./convert-to-member-dialog";
+import { RenewMembershipDialog } from "./renew-membership-dialog";
+import { DeleteClientDialog } from "./delete-client-dialog";
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 type Client = {
@@ -43,7 +47,7 @@ type Props = {
   type: "WALK_IN" | "MEMBER";
 };
 
-export function ClientActionsMenu({ client }: Props) {
+export function ClientActionsMenu({ client, type }: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -52,10 +56,15 @@ export function ClientActionsMenu({ client }: Props) {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="min-w-45">
         <ViewClientDialog client={client} />
 
         <EditClientDialog client={client} />
+        <DeleteClientDialog client={client} />
+
+        <DropdownMenuSeparator />
+        {type === "WALK_IN" && <ConvertToMemberDialog client={client} />}
+        {type === "MEMBER" && <RenewMembershipDialog client={client} />}
       </DropdownMenuContent>
     </DropdownMenu>
   );

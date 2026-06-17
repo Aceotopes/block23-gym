@@ -1,5 +1,7 @@
 "use client";
 
+import { SquarePen, User, Phone, Save } from "lucide-react";
+
 import { useState } from "react";
 import { updateClient } from "@/actions/client";
 import { toast } from "sonner";
@@ -102,16 +104,41 @@ export function EditClientDialog({ client }: Props) {
     >
       <DialogTrigger asChild>
         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+          <SquarePen />
           Edit Client
         </DropdownMenuItem>
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Edit Client</DialogTitle>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+            <SquarePen className="h-6 w-6 text-primary" />
+          </div>
 
-          <DialogDescription>Update client information.</DialogDescription>
+          <DialogTitle className="text-center text-xl">
+            Edit Client Profile
+          </DialogTitle>
+
+          <DialogDescription className="text-center">
+            Update personal and contact information.
+          </DialogDescription>
         </DialogHeader>
+
+        <div className="rounded-xl border bg-muted/30 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <User className="h-5 w-5" />
+            </div>
+
+            <div>
+              <p className="font-medium">
+                {client.firstName} {client.lastName}
+              </p>
+
+              <p className="text-sm text-muted-foreground">Client Profile</p>
+            </div>
+          </div>
+        </div>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
