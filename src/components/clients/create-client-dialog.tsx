@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createWalkInClient, createMember } from "@/actions/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { ZodError } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -142,7 +143,9 @@ export function CreateClientDialog() {
         } catch (error) {
           console.error(error);
 
-          toast.error("Failed to register member");
+          toast.error(
+            error instanceof Error ? error.message : "Failed to register member"
+          );
         } finally {
           setIsSubmitting(false);
         }
@@ -171,8 +174,13 @@ export function CreateClientDialog() {
       } catch (error) {
         console.error(error);
 
+        if (error instanceof ZodError) {
+          toast.error(error.issues[0]?.message);
+          return;
+        }
+
         toast.error(
-          "Invalid first name or last name. Only letters and spaces are allowed."
+          error instanceof Error ? error.message : "Failed to register client"
         );
       } finally {
         setIsSubmitting(false);

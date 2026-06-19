@@ -59,6 +59,7 @@ export function ClientToolbar() {
           <SelectItem value="ACTIVE">Active</SelectItem>
 
           <SelectItem value="EXPIRED">Expired</SelectItem>
+          <SelectItem value="INACTIVE">Inactive</SelectItem>
         </SelectContent>
       </Select>
     </div>

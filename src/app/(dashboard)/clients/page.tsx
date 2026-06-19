@@ -5,6 +5,8 @@ import { ClientsTable } from "@/components/clients/clients-table";
 import { CreateClientDialog } from "@/components/clients/create-client-dialog";
 import { ClientSearch } from "@/components/clients/client-search";
 import { ClientToolbar } from "@/components/clients/client-toolbar";
+import { getClientStatus, getClientType } from "@/lib/client-status";
+import { ClientKpiCards } from "@/components/clients/client-kpi-cards";
 
 import {
   Card,
@@ -124,6 +126,12 @@ export default async function ClientsPage({ searchParams }: Props) {
       return latestMembership?.status === "EXPIRED";
     });
   }
+  if (status) {
+    filteredClients = filteredClients.filter(
+      (client) => getClientStatus(client) === status
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className=" flex items-center justify-between ">
@@ -138,7 +146,7 @@ export default async function ClientsPage({ searchParams }: Props) {
         </div>
       </div>
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">...</div>
+      <ClientKpiCards clients={serializedClients} />
 
       {/* Management Card */}
       <Card>

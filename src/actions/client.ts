@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createClientSchema } from "@/lib/validations/client";
 import { DateValues } from "date-fns";
+import { formatName } from "@/lib/format-name";
 
 // type CreateWalkInClientInput = {
 //   firstName: string;
@@ -24,12 +25,32 @@ import { DateValues } from "date-fns";
 // }
 
 export async function createWalkInClient(data: unknown) {
-  const validated = createClientSchema.parse(data);
+  const result = createClientSchema.safeParse(data);
+
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message);
+  }
+
+  const validated = result.data;
+
+  const firstName = formatName(validated.firstName);
+  const lastName = formatName(validated.lastName);
+
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      firstName,
+      lastName,
+    },
+  });
+
+  if (existingClient) {
+    throw new Error(`${firstName} ${lastName} already exists`);
+  }
 
   await prisma.client.create({
     data: {
-      firstName: validated.firstName,
-      lastName: validated.lastName,
+      firstName,
+      lastName,
       phone: validated.phone || null,
     },
   });
@@ -50,11 +71,34 @@ type CreateMemberInput = {
 };
 
 export async function createMember(data: CreateMemberInput) {
+  const result = createClientSchema.safeParse({
+    firstName: data.firstName,
+    lastName: data.lastName,
+    phone: data.phone,
+  });
+
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message);
+  }
+
+  const firstName = formatName(data.firstName);
+  const lastName = formatName(data.lastName);
+
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      firstName,
+      lastName,
+    },
+  });
+
+  if (existingClient) {
+    throw new Error(`${firstName} ${lastName} already exists`);
+  }
   await prisma.$transaction(async (tx) => {
     const client = await tx.client.create({
       data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: firstName,
+        lastName: lastName,
         phone: data.phone || null,
       },
     });
@@ -95,19 +139,41 @@ export async function updateClient(data: {
   lastName: string;
   phone?: string;
 }) {
-  createClientSchema.parse({
+  const firstName = formatName(data.firstName);
+  const lastName = formatName(data.lastName);
+
+  const result = createClientSchema.safeParse({
     firstName: data.firstName,
     lastName: data.lastName,
     phone: data.phone,
   });
+
+  if (!result.success) {
+    throw new Error(result.error.issues[0]?.message);
+  }
+
+  const existingClient = await prisma.client.findFirst({
+    where: {
+      firstName,
+      lastName,
+
+      NOT: {
+        id: data.id,
+      },
+    },
+  });
+
+  if (existingClient) {
+    throw new Error(`${firstName} ${lastName} already exists`);
+  }
 
   await prisma.client.update({
     where: {
       id: data.id,
     },
     data: {
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: firstName,
+      lastName: lastName,
       phone: data.phone || null,
     },
   });

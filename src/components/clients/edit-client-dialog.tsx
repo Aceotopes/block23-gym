@@ -85,7 +85,9 @@ export function EditClientDialog({ client }: Props) {
     } catch (error) {
       console.error(error);
 
-      toast.error("Failed to update client");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update client"
+      );
     } finally {
       setIsSubmitting(false);
     }
