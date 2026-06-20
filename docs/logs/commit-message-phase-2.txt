@@ -1,0 +1,44 @@
+feat(attendance): rebuild check-in module with search-based flow and correct visit type tracking
+
+Resolves ATT-01 (duplicate client records on every check-in) and ATT-02
+(visitType never set). See docs/logs/2026-06-20-phase-2-attendance-rebuild.md.
+
+src/actions/attendance.ts:
+- Add searchClients(query) — finds clients by name or phone with deletedAt filter;
+  returns isActiveMember, isExpiredMember, membershipEndDate per result; max 10 results
+- Add checkIn(data: CheckInInput) — unified server action replacing createWalkInAttendance;
+  handles existing clients and new walk-ins via discriminated union input type;
+  re-derives visitType from DB inside transaction (not from UI state);
+  deduplicates new walk-ins by name match before creating a client record;
+  guards against double check-in (throws if timeOut: null record exists);
+  sets visitType = MEMBER for active members (no payment) or WALK_IN + payment for all others;
+  paymentMethod (CASH/GCASH/PAYMAYA) now recorded on all walk-in Payment records
+- Fix timeOutAttendance() — add missing revalidatePath("/attendance")
+- Add WALK_IN_FEE = 100 constant (Phase 3 will connect to GymSettings.defaultWalkInFee)
+
+src/components/attendance/attendance-form.tsx:
+- Rewrite with 3-mode flow: search → confirm (existing client) or new-walkin
+- Search input debounced at 350ms via use-debounce; race condition handled with
+  cancelled flag in useEffect to discard stale server action responses
+- Results list shows client name, phone, and status badge (Active Member/Expired/Walk-In)
+- Confirm mode: client info card with expiry date; payment method selector shown only
+  when walk-in fee applies (expired or non-member); client-side validation before submit
+- New walk-in mode: first/last/phone inputs; firstName pre-filled from search query;
+  payment method selector always required
+- resetForm() clears all state and returns to search after successful check-in
+
+src/components/attendance/attendance-table.tsx:
+- Add Visit Type column with Member/Walk-In badges (uses visitType from Phase 1 schema)
+- Format timeIn as "h:mm a" instead of toLocaleString() (live table shows today only)
+- Add empty state when no one is checked in
+- Fix client.lastName type from string | null to string (non-nullable in schema)
+
+src/app/(dashboard)/attendance/page.tsx:
+- Switch from include: { client: true } to explicit select for visitType + client fields
+- Live count subtitle: "3 people currently in the gym" / "No one is currently checked in"
+
+Debt resolved: ATT-01, ATT-02
+Partially addressed: ATT-03 (walk-in fee still hardcoded — Phase 3)
+Next: Phase 3 — Payments Page
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
