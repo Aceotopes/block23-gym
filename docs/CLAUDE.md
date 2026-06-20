@@ -48,38 +48,42 @@ src/
 ├── app/
 │   ├── (auth)/login/           # Login page
 │   ├── (dashboard)/            # All protected pages
-│   │   ├── attendance/         # Attendance module (broken — see TECHNICAL_DEBT.md)
-│   │   ├── clients/            # Clients module (complete)
-│   │   ├── dashboard/          # Dashboard (stub)
-│   │   ├── payments/           # Payments (stub)
-│   │   ├── settings/           # Settings (stub)
+│   │   ├── attendance/         # Attendance module — working (Phase 2 complete)
+│   │   ├── clients/            # Clients module — complete
+│   │   ├── dashboard/          # Dashboard — stub (Phase 4 not started)
+│   │   ├── payments/           # Payments module — complete (Phase 3 complete)
+│   │   ├── settings/           # Settings — stub (Phase 5 not started)
 │   │   └── layout.tsx          # Auth gate
 │   ├── api/auth/[...nextauth]/ # NextAuth handler
-│   ├── globals.css             # Tailwind + design tokens
+│   ├── globals.css             # Tailwind + design tokens (achromatic — Phase 9 pending)
 │   └── layout.tsx              # Root layout (fonts, Sonner)
 ├── actions/
-│   ├── client.ts               # Primary action file — complete
-│   ├── attendance.ts           # Broken — see TECHNICAL_DEBT.md
-│   └── membership.ts           # Dead code — createMembership() is incomplete and unused
+│   ├── client.ts               # createWalkInClient, createMember, updateClient,
+│   │                           #   convertToMember, renewMembership, deleteClient
+│   ├── attendance.ts           # searchClients, checkIn, timeOutAttendance
+│   └── payment.ts              # editPayment (ADMIN-only), getClientPayments
 ├── components/
 │   ├── attendance/             # 3 components (attendance-form, attendance-table, time-out-button)
-│   ├── clients/                # 11 components (full CRUD dialogs, table, toolbar, KPI cards)
+│   ├── clients/                # 12 components (CRUD dialogs, table, toolbar, KPI cards,
+│   │                           #   client-payment-history-dialog)
+│   ├── payments/               # 4 components (payments-summary, payments-filter,
+│   │                           #   payments-table, edit-payment-dialog)
 │   ├── dashboard/              # navbar.tsx, sidebar.tsx
 │   └── ui/                     # 15 shadcn/ui components
 ├── constants/
 │   └── navigation.ts           # Sidebar nav items
 ├── lib/
-│   ├── client-status.ts        # getClientType(), getClientStatus() — magic number: 7 days
+│   ├── client-status.ts        # getClientType(), getClientStatus() — uses WALK_IN_ACTIVE_DAYS constant
 │   ├── format-name.ts          # Proper-case name formatting
 │   ├── prisma.ts               # Prisma singleton
 │   ├── utils.ts                # cn() classname utility
-│   └── validations/client.ts  # Zod schema for client creation only
+│   └── validations/client.ts  # Zod schema for client creation
 └── types/
     └── next-auth.d.ts          # Session augmentation (id, role)
 
 prisma/
-├── schema.prisma               # Full schema — see DATABASE_SCHEMA.md
-└── seed.ts                     # Creates admin user + GymSettings
+├── schema.prisma               # V2 schema (live) — see DATABASE_SCHEMA.md
+└── seed.ts                     # Creates admin user, GymSettings, and 3 MembershipPlan records
 ```
 
 ---
@@ -88,28 +92,23 @@ prisma/
 
 | Feature | Status | Notes |
 |---|---|---|
-| Authentication | Working (~95%) | Roles exist but RBAC is not enforced anywhere |
-| Clients CRUD | Complete | Search, filter, create, edit, delete (hard delete — see debt) |
-| Membership lifecycle | Working (~90%) | Fees hardcoded; orphan action file exists |
-| Attendance | Broken (~40%) | Creates duplicate clients; members cannot check in; visitType never set |
-| Payments UI | Stub | `<div>Payments Page</div>` |
-| Dashboard | Stub | Logout button only |
-| Settings | Stub | `<div>Settings Page</div>` |
-| GymSettings (DB) | Unused | Model exists with defaults; never read in any action or component |
+| Authentication | Working (~95%) | Roles exist; RBAC enforced only on `editPayment` (Phase 6 incomplete) |
+| Clients CRUD | Complete | Search, filter, create, edit, soft delete with AuditLog |
+| Membership lifecycle | Working (~85%) | Fees still hardcoded in dialogs; `planId` not passed to actions (see CODE-08) |
+| Attendance | Working (~90%) | Phase 2 complete: search-based check-in, visitType set, duplicate prevention |
+| Payments UI | Complete (~95%) | Phase 3 complete: transaction history, period filter, daily summary, per-client history, ADMIN editing |
+| Audit logging | Partial (~60%) | DELETE_CLIENT and EDIT_PAYMENT log to AuditLog; no UI to view log yet |
+| Dashboard | Stub | Logout button only — Phase 4 not started |
+| Settings | Stub | `<div>Settings Page</div>` — Phase 5 not started |
+| GymSettings (DB) | Partial | `defaultWalkInFee` read in attendance and payments; monthly fee and walkInActiveDays deferred to Phase 5 |
 
 ---
 
 ## Critical Known Issues (Do Not Ignore)
 
-1. **`src/actions/attendance.ts` — `createWalkInAttendance()`** creates a brand-new `Client` record on every call. Existing members and returning walk-ins are not looked up. This produces duplicate client records and must be redesigned before the attendance module is used. **Resolved in Phase 2.**
+1. **`Membership.planId` is always null for new memberships** — The V2 schema added `planId String?` and the seed creates three `MembershipPlan` records, but none of the three membership server actions (`createMember`, `convertToMember`, `renewMembership`) pass a `planId` to `tx.membership.create()`. New memberships are created with `planId = null`, the same as pre-V2. The UI dialogs still use hardcoded fees and durations. **See CODE-08 in `docs/TECHNICAL_DEBT.md`. Blocked until Phase 5.**
 
-2. **`Attendance.visitType` is never set** in any server action. All attendance records in the database have an unset visit type. **Resolved in Phase 2.**
-
-3. **`src/actions/membership.ts`** — the `createMembership()` function is incomplete (missing `durationInDays`, missing `amountPaid`, no payment creation) and is not called from anywhere meaningful. It is dead code. **Delete this file in Phase 1.**
-
-4. **`GymSettings` is never read** — membership fees (₱1200) and walk-in fees (₱100) are hardcoded in multiple files instead of reading from the database. **Resolved progressively across Phases 3–5.**
-
-5. **Hard delete** — `deleteClient()` permanently removes all attendance, payment, and membership history. **V2 schema adds `Client.deletedAt`. Code fix in Phase 1.**
+2. **`deleteClient()` does not enforce ADMIN role** — The action performs a soft delete and writes an AuditLog, but does not check `session.user.role`. A STAFF user can currently delete clients, which is an ADMIN-only operation by design. **See AUTH-01. Blocked until Phase 6.**
 
 ---
 
@@ -120,8 +119,8 @@ prisma/
 - **Client status** is derived at runtime via `src/lib/client-status.ts` — ACTIVE/EXPIRED/INACTIVE
 - **Soft delete — Client:** After Phase 1, `deleteClient()` sets `deletedAt = now()`. Every active-client query must include `where: { deletedAt: null }`. See `docs/adr/ADR-001.md`.
 - **Soft delete — User:** `User.deletedAt` exists from Phase 1. Staff queries and NextAuth credential checks must filter `deletedAt IS NULL`.
-- **MembershipPlan:** After Phase 1, plans come from the `MembershipPlan` table. Query with `where: { isActive: true }` ordered by `sortOrder ASC` for the plan selector. Do not hardcode durations or prices anywhere.
-- **Membership.planId:** Nullable in schema (for pre-migration records), but server actions must require it for all new memberships. Reject at the action level if not provided.
+- **MembershipPlan:** Plans exist in the `MembershipPlan` table (seeded with 1/2/3 Month records). Query with `where: { isActive: true }` ordered by `sortOrder ASC` for the plan selector. Phase 5 connects the UI to live plan data.
+- **Membership.planId:** Nullable in schema (for pre-migration records). The intent is for server actions to require `planId` for new memberships, but this is **not yet enforced** — all three membership creation actions currently create records with `planId = null`. See CODE-08. Phase 5 fixes this.
 - **GymSettings singleton:** Always access via `prisma.gymSettings.findUniqueOrThrow({ where: { id: "default-settings" } })`. Never use `findFirst()`.
 - **Walk-in active window:** After Phase 1, read `walkInActiveDays` from `GymSettings` instead of the hardcoded `7` in `client-status.ts`.
 - **Decimal serialization:** Prisma `Decimal` types are manually converted to `Number` in the clients page component before passing to client components — this is a known debt item (CODE-06)
@@ -164,6 +163,8 @@ These are locked-in decisions from the developer discovery session and V2 schema
 ## Related Documentation
 
 - `docs/PROJECT_OVERVIEW.md` — high-level project description and feature status
-- `docs/DATABASE_SCHEMA.md` — full schema documentation and planned changes
+- `docs/DATABASE_SCHEMA.md` — full schema documentation (V2 — currently live)
 - `docs/ROADMAP.md` — implementation phases and feature backlog
 - `docs/TECHNICAL_DEBT.md` — prioritized list of all known debt and broken functionality
+- `docs/DESIGN_SYSTEM.md` — design token definitions, typography, component patterns, and Phase 9 implementation spec
+- `docs/adr/` — Architecture Decision Records (ADR-001 through ADR-004)

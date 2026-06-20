@@ -28,19 +28,27 @@ Register and manage all gym visitors — both members (paid subscriptions) and w
 Create, renew, and track membership subscriptions. Membership plans will be configurable by the admin (name, duration, price). Currently, plans are hardcoded as 1, 2, or 3 months at ₱1,200/month. A `MembershipPlan` model is planned as part of the next schema redesign.
 
 ### Attendance
-Record client check-ins and check-outs. The intended flow:
+Record client check-ins and check-outs. The flow:
 - Staff searches for a client by name or phone
 - Selects the matching client from results
-- Records the check-in against that existing client record
+- Selects payment method (Cash / GCash / PayMaya) for walk-in visitors
+- Records the check-in against the existing client record
 
-Walk-in visitors are recognized by name and phone number. Returning walk-ins are matched to their existing record rather than creating duplicates. If a returning member's membership is expired, they can still check in but are recorded as a walk-in visit and charged the walk-in fee.
+Walk-in visitors are recognized by name and phone number. Returning walk-ins are matched to their existing record — no duplicates are created. If a returning member's membership is expired, they check in as a walk-in visit and are charged the walk-in fee (read from GymSettings).
 
-**Current status: Broken.** The attendance module needs to be rebuilt before it is usable. See `TECHNICAL_DEBT.md` for details.
+**Current status: Working (~90%).** Phase 2 complete. Search-based check-in, visitType correctly recorded, duplicate prevention, GymSettings walk-in fee integration.
 
 ### Payments
 Record and track all financial transactions — membership payments and walk-in fees. Payment method is recorded at the time of collection (cash, GCash, or PayMaya).
 
-**Current status: Not implemented.** Only the database model and automatic payment record creation (during membership and check-in flows) are in place.
+Features:
+- Transaction history table with date, client, type, method, amount, and status columns
+- Period filter: today / this week / this month
+- Daily summary card: total collected, broken down by Cash / GCash / PayMaya
+- Per-client payment history accessible from the Clients page actions menu
+- ADMIN-only: edit payment status and method after creation (with AuditLog entry)
+
+**Current status: Complete (~95%).** Phase 3 complete.
 
 ### Dashboard
 The main landing page after login. Will display:
@@ -109,14 +117,14 @@ Tailwind CSS v4 (CSS-first) with shadcn/ui components. Design tokens are defined
 |---|---|---|
 | Authentication | Working | ~95% |
 | Clients CRUD | Complete | ~100% |
-| Membership lifecycle | Working | ~90% |
-| Attendance check-in | Broken | ~40% |
-| Payments UI | Not started | 0% |
+| Membership lifecycle | Working | ~85% |
+| Attendance check-in | Working | ~90% |
+| Payments UI | Complete | ~95% |
+| Audit logging | Partial | ~60% |
 | Dashboard | Not started | ~5% |
 | Settings | Not started | 0% |
-| GymSettings integration | Not started | 0% |
-| Role enforcement (RBAC) | Not started | 0% |
-| Audit logging | Not started | 0% |
+| GymSettings integration | Partial | ~40% |
+| Role enforcement (RBAC) | Partial | ~20% |
 | CSV/PDF exports | Not started | 0% |
 
 ---
@@ -139,17 +147,21 @@ The system is designed to be sold to other gym owners. Each customer receives a 
 
 ---
 
-## Future Roadmap
+## Completed Phases
 
-1. Schema redesign (MembershipPlan model, soft delete, payment method field, audit log)
-2. Attendance module rebuild (search-based check-in)
-3. Payments page (full transaction history, daily summary, method recording)
-4. Dashboard (KPIs + trend charts)
-5. Settings page (plans, gym profile, fee configuration)
-6. Role enforcement (RBAC on server actions and routes)
-7. CI/CD pipeline (GitHub Actions)
-8. UI/design system improvements
-9. Client-facing portal or mobile app (requires REST/tRPC API layer)
-10. Loyalty and rewards system
+1. ✅ Schema redesign (MembershipPlan, soft delete, PaymentMethod, AuditLog, GymSettings expansion)
+2. ✅ Attendance module rebuild (search-based check-in, visitType recording, GymSettings walk-in fee)
+3. ✅ Payments page (transaction history, daily summary, method recording, ADMIN editing)
+
+## Remaining Roadmap
+
+4. Dashboard (KPIs + trend charts) — **Phase 4**
+5. Settings page (plans, gym profile, fee configuration) — **Phase 5**
+6. Role enforcement (RBAC on server actions and routes) — **Phase 6**
+7. Reports & exports (CSV/PDF) — **Phase 7**
+8. CI/CD pipeline (GitHub Actions) — **Phase 8**
+9. UI/design system improvements (see `docs/DESIGN_SYSTEM.md` for full spec) — **Phase 9**
+10. Client-facing portal or mobile app (requires REST/tRPC API layer) — **Future**
+11. Loyalty and rewards system — **Future**
 
 See `docs/ROADMAP.md` for the full phased plan.

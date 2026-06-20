@@ -1,0 +1,51 @@
+docs: synchronize all documentation with Phases 1–3 implementation and design system
+
+Full audit of docs/ against the current codebase. No code changes — documentation only.
+See docs/logs/2026-06-20-documentation-sync.md for the full review report.
+
+docs/CLAUDE.md:
+- Feature status: Attendance Working (90%), Payments Complete (95%), GymSettings
+  Partial, Audit logging added — all reflecting actual implementation state
+- Critical Known Issues: replace 5 stale resolved items with 2 active issues
+  (CODE-08 planId gap, AUTH-01 deleteClient missing role check)
+- Directory map: remove deleted membership.ts; add payment.ts and
+  components/payments/ (4 components); client count 11 → 12
+- Key Conventions: planId note updated to reflect null gap until Phase 5
+- Related Documentation: add DESIGN_SYSTEM.md and docs/adr/ entries
+
+docs/TECHNICAL_DEBT.md:
+- Mark 7 items RESOLVED: ATT-01, ATT-02, ATT-03, MEM-02, PAY-02, SCHEMA-01,
+  SCHEMA-03 — move to new Resolved appendix section with evidence
+- Update PAY-01 to reflect Phase 3 partial resolution (ADMIN edit now possible)
+- Update SCHEMA-02 to reflect walk-in fee connected; rest deferred to Phase 5
+- Update CODE-07: named constant extracted (Phase 1); GymSettings connection Phase 5
+- Add CODE-08 (High): planId not passed in membership creation — all new
+  Membership records have planId = null despite MembershipPlan table having data
+- Add UI-04 (Low): root layout has placeholder "Create Next App" metadata
+- Rebuild resolution table with status column (24 items total)
+
+docs/PROJECT_OVERVIEW.md:
+- Attendance section: "Broken" → "Working (~90%), Phase 2 complete"
+- Payments section: "Not implemented" → complete feature description
+- Feature Status Summary: 5 rows corrected; Audit logging row added
+- Future Roadmap: split into Completed Phases (1–3) and Remaining Roadmap (4–9)
+- Add reference to DESIGN_SYSTEM.md
+
+docs/ROADMAP.md:
+- Current Status table: Attendance and Payments updated to complete; GymSettings,
+  role enforcement, and audit logging rows added
+- Phase 9: rewritten to reference DESIGN_SYSTEM.md as authoritative spec; full
+  file update list and new component list added
+
+docs/DATABASE_SCHEMA.md:
+- Schema version table: V2 status "pending Phase 1 migration" → "live as of 2026-06-20"
+
+docs/DESIGN_SYSTEM.md (new — created in same session):
+- Full design system specification: Iron & Gold direction, color tokens, typography
+  (Bebas Neue + Geist Sans), spacing, 9 component pattern sections, Phase 9 checklist
+- Based on 16 confirmed decisions from the design discovery workshop
+
+docs/logs/2026-06-20-documentation-sync.md (new):
+- Full sync report: findings, file-by-file changes, active debt summary
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>

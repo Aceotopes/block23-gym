@@ -2,43 +2,7 @@
 
 Issues are grouped by severity. Critical and High items block or corrupt functionality. Medium items affect maintainability and consistency. Low items are quality improvements.
 
----
-
-## Critical — Broken or Data-Corrupting
-
-### ATT-01: Attendance creates duplicate client records
-
-**File:** `src/actions/attendance.ts` — `createWalkInAttendance()`
-
-**Problem:** Every call creates a brand-new `Client` record regardless of whether the person has visited before. There is no lookup by name or phone before inserting. This produces duplicate client records for every returning walk-in visitor, and existing registered members have no check-in path at all.
-
-**Impact:** Data integrity — the database accumulates phantom duplicate client records with each walk-in visit.
-
-**Resolution:** Redesign the action to search for an existing client by name + phone before creating. Part of the Attendance Module Rebuild (Phase 2).
-
----
-
-### ATT-02: Attendance.visitType is never set
-
-**File:** `src/actions/attendance.ts`, `src/actions/client.ts`
-
-**Problem:** The `Attendance` model has a `visitType VisitType` field (MEMBER | WALK_IN) that is defined in the schema but is never populated by any server action. All attendance records in the database have an undefined visit type.
-
-**Impact:** Attendance cannot be categorized by visit type. Any reporting that distinguishes member visits from walk-in visits is impossible on existing data.
-
-**Resolution:** Every server action that creates an `Attendance` record must explicitly set `visitType`. Part of the Attendance Module Rebuild (Phase 2).
-
----
-
-### ATT-03: Walk-in fee hardcoded in attendance action
-
-**File:** `src/actions/attendance.ts`
-
-**Problem:** Walk-in payment is created with `amount: 100` hardcoded. The `GymSettings.defaultWalkInFee` field exists in the database with the correct value but is never read.
-
-**Impact:** If the gym changes its walk-in fee, the code must be manually edited rather than updating a setting.
-
-**Resolution:** Read from `GymSettings` in the action. Blocked until Phase 3 (Settings integration).
+Resolved items are collected in the **Resolved** section at the bottom of this document.
 
 ---
 
@@ -51,81 +15,63 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 - `src/components/clients/renew-membership-dialog.tsx`
 - `src/components/clients/convert-to-member-dialog.tsx`
 
-**Problem:** The monthly membership fee (₱1200) and plan durations (30, 60, 90 days) are hardcoded in each dialog. There is a TODO comment in the code: "CONNECT TO GYM SETTINGS LATER." The `GymSettings.defaultMonthlyFee` database field exists but is unused.
+**Problem:** The monthly membership fee (₱1200) and plan durations (30, 60, 90 days) are hardcoded in each dialog. There is a TODO comment in the code: "CONNECT TO GYM SETTINGS LATER." The `MembershipPlan` database records exist (seeded) but are not queried by any of these components.
 
-**Impact:** Fee changes require editing three separate component files. Plan configuration is impossible without a code change.
+**Impact:** Fee changes require editing three separate component files. Plan configuration is impossible without a code change. See also CODE-08 below.
 
-**Resolution:** V2 schema adds `MembershipPlan` model (Phase 1). Dialog components will query live plan data (Phase 5). **Schema ready in Phase 1; UI connected in Phase 5. See `docs/adr/ADR-002.md`.**
-
----
-
-### MEM-02: Dead code in membership action file
-
-**File:** `src/actions/membership.ts`
-
-**Problem:** Contains `createMembership()` which is incomplete — it is missing `durationInDays`, missing `amountPaid`, creates no payment record, and is not called from any component that matters. It was partially written and then superseded by the membership logic inside `src/actions/client.ts`.
-
-**Impact:** Confusing to anyone reading the codebase. May be accidentally called in the future.
-
-**Resolution:** Delete the file entirely. **Scheduled for Phase 1.**
+**Resolution:** Phase 5 — dialog components will query live `MembershipPlan` data; plan selector will be replaced with radio card component (specified in `docs/DESIGN_SYSTEM.md`). **Schema ready. UI connection deferred to Phase 5. See `docs/adr/ADR-002.md`.**
 
 ---
 
-### AUTH-01: Role-based access control is defined but never enforced
+### CODE-08: `planId` not passed in membership creation — all new memberships have `planId = null`
 
-**Files:** `src/actions/client.ts`, `src/actions/attendance.ts`, route layouts
+**Files:**
+- `src/actions/client.ts` — `createMember()`, `convertToMember()`, `renewMembership()`
 
-**Problem:** The `User.role` field (ADMIN | STAFF) is included in the JWT and session, but no server action, middleware, or UI element checks the role. Both roles currently have identical access to all functionality.
+**Problem:** The V2 schema added `Membership.planId String?` and the seed creates three `MembershipPlan` records. `docs/CLAUDE.md` states: "Membership.planId: Nullable in schema (for pre-migration records), but server actions must require it for all new memberships." However, none of the three membership server actions pass a `planId` to `tx.membership.create()`. Every membership created since Phase 1 has `planId = null`.
+
+**Impact:** The `MembershipPlan` table has seeded data but is completely disconnected from membership creation. Plan-based reporting (e.g., "how many 3-month plans sold this month") is impossible on current data. The business rule stated in CLAUDE.md, DATABASE_SCHEMA.md, and ADR-002 is not enforced.
+
+**Resolution:** Phase 5 — the Settings UI will build the plan picker; the server actions will accept and require `planId`; existing null records will be documented as pre-Phase 5 data. **Blocked on Phase 5. See `docs/adr/ADR-002.md`.**
+
+---
+
+### AUTH-01: Role-based access control is defined but incompletely enforced
+
+**Files:** `src/actions/client.ts`, route layouts, middleware (does not exist yet)
+
+**Problem:** The `User.role` field (ADMIN | STAFF) is in the JWT. `editPayment` correctly enforces ADMIN role. However, `deleteClient()` performs a soft delete and writes an AuditLog without checking `session.user.role` — a STAFF user can delete clients. No middleware or layout guard exists for the Settings route. UI hiding of ADMIN-only controls is not implemented.
 
 **Impact:** A STAFF user can delete clients, which is an ADMIN-only operation by design.
 
-**Resolution:** Add role checks inside server actions for restricted operations. Add UI-level hiding for ADMIN-only controls. Part of Phase 6 (RBAC).
+**Resolution:** Phase 6 — add role checks to `deleteClient()` and any other restricted actions; add middleware/layout guard for `/settings`; hide ADMIN-only UI controls from STAFF users.
 
 ---
 
-### PAY-01: Payment status is always PAID
+### PAY-01: New payment status is always PAID
 
-**File:** All actions that create `Payment` records
+**Files:** All actions that create `Payment` records
 
-**Problem:** Every payment creation call hardcodes `status: "PAID"`. The `PaymentStatus` enum includes PENDING, FAILED, and REFUNDED, but these values are unreachable in current code.
+**Problem:** Every payment creation call hardcodes `status: "PAID"`. For membership payments (always upfront) this is by design. For walk-in payments this is also acceptable as-is. However, the PENDING, FAILED, and REFUNDED statuses are only reachable via ADMIN edit after the fact.
 
-**Impact:** The payment model has no real-world utility beyond recording that a transaction occurred. No deferred payment, failed transaction, or refund workflow is possible.
+**Current state (updated Phase 3):** ADMIN can now edit payment status and method via `editPayment()`. New payments still default to PAID on creation, which is the correct behavior for this gym's upfront payment model. The remaining gap is that no "failed transaction" or "pending" recording path exists in the UI.
 
-**Resolution:** For membership payments (always upfront), PAID remains correct. For the Payments page, ADMIN edit of payment status will unlock the other values. Part of Phase 3 (Payments).
-
----
-
-### PAY-02: No payment method field
-
-**Schema:** `Payment` model
-
-**Problem:** The `Payment` model has no field to distinguish cash from digital payments (GCash, PayMaya). Payment method is a confirmed requirement.
-
-**Impact:** Revenue reports cannot separate cash from digital. Daily cash reconciliation is impossible.
-
-**Resolution:** V2 schema adds `PaymentMethod` enum (CASH, GCASH, PAYMAYA) and `Payment.paymentMethod PaymentMethod @default(CASH)`. **Scheduled for Phase 1. See `docs/adr/ADR-004.md`.**
+**Resolution:** Largely acceptable. If deferred payment scenarios arise in the future, a UI path for creating PENDING payments can be added. No immediate action required beyond the Phase 3 ADMIN edit capability.
 
 ---
 
-### SCHEMA-01: No soft delete on Client
+### SCHEMA-02: GymSettings partially integrated
 
-**File:** `src/actions/client.ts` — `deleteClient()`
+**Files:** `src/actions/attendance.ts`, `src/components/attendance/attendance-form.tsx`, various dialog components
 
-**Problem:** `deleteClient()` executes a hard cascade delete. All related attendance, payment, and membership records are permanently destroyed. The confirmed design decision is soft delete using a `deletedAt DateTime?` field.
+**Current state (updated Phase 3):** `GymSettings.defaultWalkInFee` is now read in `checkIn()` and displayed in `AttendanceForm`. The `attendance/page.tsx` fetches this value and passes it as a prop — the walk-in fee is live from the database.
 
-**Impact:** Deleted clients are irrecoverable. Revenue data and attendance history for that client are permanently lost.
+**Remaining gaps:**
+- `GymSettings.defaultMonthlyFee` — not read anywhere; membership dialogs still use hardcoded ₱1200
+- `GymSettings.walkInActiveDays` — not read; `client-status.ts` uses the named constant `WALK_IN_ACTIVE_DAYS = 7`
+- `GymSettings.gymName`, `address`, `contactEmail`, `contactPhone` — not used anywhere yet
 
-**Resolution:** V2 schema adds `Client.deletedAt DateTime?` and `User.deletedAt DateTime?`. `deleteClient()` updated to set `deletedAt = now()` and write an `AuditLog` entry. All active-client queries updated to filter `WHERE deletedAt IS NULL`. **Scheduled for Phase 1. See `docs/adr/ADR-001.md`.**
-
----
-
-### SCHEMA-02: GymSettings is never read
-
-**File:** `src/lib/prisma.ts`, all action files
-
-**Problem:** The `GymSettings` singleton model was created in the schema and seeded with default values, but no server action or component ever reads from it. All configurable values (fees, walk-in window) are hardcoded in application code.
-
-**Resolution:** Addressed across Phases 1–3 as each module is connected to GymSettings.
+**Resolution:** Phase 5 — Settings page will expose all GymSettings fields for editing and connect membership dialogs to live fee/plan data.
 
 ---
 
@@ -134,16 +80,13 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 ### CODE-01: Membership form logic duplicated across three dialogs
 
 **Files:**
-- `src/components/clients/create-client-dialog.tsx` — 402 lines
-- `src/components/clients/renew-membership-dialog.tsx` — 313 lines
-- `src/components/clients/convert-to-member-dialog.tsx` — 253 lines
+- `src/components/clients/create-client-dialog.tsx` — ~426 lines
+- `src/components/clients/renew-membership-dialog.tsx` — ~337 lines
+- `src/components/clients/convert-to-member-dialog.tsx` — ~276 lines
 
-**Problem:** All three dialogs contain nearly identical logic for:
-- Membership plan selection (useEffect for plan → duration mapping, ~45 lines each)
-- Membership summary display (a card showing start date, end date, duration, amount, ~50 lines each)
-- Date calculation (computing endDate from startDate + durationInDays)
+**Problem:** All three dialogs contain nearly identical logic for membership plan selection, summary display, date calculation, and payment method selection. The `paymentMethod` state and selector pattern was added to all three in Phase 3, adding another layer of duplication.
 
-**Resolution:** Extract into a shared `MembershipPlanSelector` component and a `useMembershipPlan` hook. Part of Phase 9 (UI improvements) or during Phase 2–3 when these dialogs are touched.
+**Resolution:** Phase 5/9 — extract into a shared `PlanSelector` component (specified in `docs/DESIGN_SYSTEM.md`) and a `useMembershipPlan` hook. Will be addressed when Phase 5 connects dialogs to live plan data.
 
 ---
 
@@ -153,7 +96,7 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **Problem:** The bottom of the file contains approximately 80 lines of HTML/JSX that has been commented out and left in place.
 
-**Resolution:** Delete the commented-out code. Part of Phase 9 (UI improvements).
+**Resolution:** Delete the commented-out code. Part of Phase 9.
 
 ---
 
@@ -161,9 +104,9 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **File:** `src/components/clients/client-kpi-cards.tsx`
 
-**Problem:** KPI card icons use hardcoded Tailwind color classes (`bg-blue-500/10`, `text-blue-600`, `bg-green-500/10`, `text-green-600`, `bg-orange-500/10`, `text-orange-600`, `bg-red-500/10`, `text-red-600`) instead of the project's CSS custom property token system. This bypasses the design system and will not respond correctly to theme changes.
+**Problem:** KPI card icons use hardcoded Tailwind color classes (`bg-blue-500/10`, `text-blue-600`, `bg-green-500/10`, etc.) instead of the project's CSS custom property token system. This bypasses the design system.
 
-**Resolution:** Replace with design token classes or CSS custom properties. Part of Phase 9 (UI improvements).
+**Resolution:** Replace with semantic status token classes as specified in `docs/DESIGN_SYSTEM.md`. Part of Phase 9.
 
 ---
 
@@ -171,9 +114,9 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **File:** `src/app/(auth)/login/page.tsx`
 
-**Problem:** Error message text uses `text-red-500` directly instead of `text-destructive`, which is the correct token-based class for error states.
+**Problem:** Error message text uses `text-red-500` directly instead of a token-based class.
 
-**Resolution:** Replace `text-red-500` with `text-destructive`. Small fix, part of Phase 9.
+**Resolution:** Replace with `text-[--status-danger-text]` as specified in `docs/DESIGN_SYSTEM.md`. Part of Phase 9.
 
 ---
 
@@ -181,11 +124,9 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **Files:** All dialog components under `src/components/clients/`
 
-**Problem:** All forms use `useState` + `useTransition` with manual field-level error tracking. Only the client creation action has a Zod schema. Form components are oversized as a result.
+**Problem:** All forms use `useState` with manual field-level error tracking. Form components are oversized as a result (~300–400 lines each).
 
-**Impact:** Each form requires ~20–30 lines of boilerplate state initialization and error tracking. Validation logic is duplicated between `create-client-dialog.tsx` and `edit-client-dialog.tsx`.
-
-**Resolution:** Introduce `react-hook-form` with Zod resolver for complex multi-field forms. Not needed for simple single-field forms. Address during Phase 9 or incrementally when dialogs are refactored.
+**Resolution:** Consider `react-hook-form` with Zod resolver for complex multi-field forms. Address during Phase 9 or incrementally when dialogs are refactored for Phase 5.
 
 ---
 
@@ -193,19 +134,23 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **File:** `src/app/(dashboard)/clients/page.tsx`
 
-**Problem:** The page component manually maps Prisma `Decimal` fields to JavaScript `Number` before passing data to client components. This serialization belongs in the server action or a dedicated DTO transformation.
+**Problem:** The page component manually maps Prisma `Decimal` fields to JavaScript `Number` before passing data to client components. This serialization belongs in the server action or a dedicated DTO layer.
 
-**Resolution:** Move serialization into the relevant server actions or a `toPlainObject()` helper. Address during Phase 2 or 3 when actions are refactored.
+**Current state:** The same pattern was applied correctly in `src/actions/payment.ts` (`getClientPayments` serializes `amount: Number(p.amount)`) and in `src/app/(dashboard)/payments/page.tsx`. The clients page still does it inline.
+
+**Resolution:** Move serialization into the relevant server actions. Address during Phase 5 when client actions are refactored for planId.
 
 ---
 
-### CODE-07: Magic number in client-status.ts
+### CODE-07: Magic number in client-status.ts — partially resolved
 
 **File:** `src/lib/client-status.ts`
 
-**Problem:** The number `7` (days for walk-in active window) is hardcoded directly in the status logic rather than being a named constant or a value read from `GymSettings`.
+**Current state (updated Phase 1):** The number `7` has been replaced with a named constant `WALK_IN_ACTIVE_DAYS = 7` at the top of the file, with a comment: `// Phase 5: replace with live GymSettings.walkInActiveDays value`. The constant is correct and the intent is documented.
 
-**Resolution:** V2 schema adds `GymSettings.walkInActiveDays Int @default(7)`. Phase 1 replaces the magic number with a named constant `WALK_IN_ACTIVE_DAYS`. Phase 5 connects the constant to the live `GymSettings` value. **Phase 1 constant extraction scheduled for Phase 1.**
+**Remaining:** The constant is still hardcoded — it is not read from `GymSettings.walkInActiveDays`. Phase 5 completes the connection.
+
+**Resolution:** Phase 5 — read `walkInActiveDays` from GymSettings singleton and pass it to the status check.
 
 ---
 
@@ -213,17 +158,17 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **File:** `package.json`
 
-**Problem:** `next-auth` version `5.0.0-beta.31` is in beta. The API may change between the current beta and the final stable release. Upgrading may require changes to `src/auth.ts`, `src/types/next-auth.d.ts`, and the API route handler.
+**Problem:** `next-auth` version `5.0.0-beta.31` is in beta. The API may change before the stable release.
 
-**Resolution:** Monitor NextAuth v5 release status. Upgrade to the stable release when it ships. No immediate action required unless breaking changes are announced.
+**Resolution:** Monitor NextAuth v5 release status. Upgrade to stable when it ships. No immediate action required.
 
 ---
 
 ### INFRA-02: No error.tsx or loading.tsx files
 
-**Problem:** No route segment has an `error.tsx` (error boundary) or `loading.tsx` (streaming placeholder). If a server component fetch fails or takes too long, the user sees a blank or frozen page.
+**Problem:** No route segment has an `error.tsx` (error boundary) or `loading.tsx` (streaming placeholder).
 
-**Resolution:** Add `error.tsx` and `loading.tsx` to the `(dashboard)` route group and key pages. Part of Phase 9.
+**Resolution:** Add to the `(dashboard)` route group and key pages. Part of Phase 9.
 
 ---
 
@@ -233,7 +178,7 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 **Files:** `src/app/(dashboard)/dashboard/page.tsx` vs all other pages
 
-**Problem:** The dashboard page wrapper uses `p-10`. Every other page uses `p-6`. Inconsistent padding creates a visual jump when navigating.
+**Problem:** The dashboard page wrapper uses `p-10`. Every other page uses `p-6`.
 
 **Resolution:** Standardize all pages to `p-6`. Part of Phase 9.
 
@@ -251,48 +196,96 @@ Issues are grouped by severity. Critical and High items block or corrupt functio
 
 ### UI-03: No accessibility audit performed
 
-**Problem:** Icon-only buttons and interactive elements have not been audited for ARIA labels or keyboard navigation support. Some icon buttons may lack descriptive screen reader text.
+**Problem:** Icon-only buttons and interactive elements have not been audited for ARIA labels or keyboard navigation support.
 
-**Resolution:** Perform an accessibility audit during Phase 9. Prioritize interactive controls (buttons, dropdowns, form fields).
+**Resolution:** Accessibility audit during Phase 9. Per `docs/DESIGN_SYSTEM.md`, all icon-only buttons must have Radix Tooltip.
 
 ---
 
-## New Debt Identified in V2 Schema Review
+### UI-04: Root layout has placeholder metadata
 
-### SCHEMA-03: No soft delete on User (staff accounts)
+**File:** `src/app/layout.tsx`
 
-**Identified:** During V2 schema design session (2026-06-20)
+**Problem:** `metadata.title = "Create Next App"` and `metadata.description = "Generated by create next app"` — scaffold defaults that appear in the browser tab and search/social previews.
 
-**Problem:** User (staff) accounts currently have no soft delete mechanism. When staff management UI is built, deactivating an account via hard delete would break audit log references.
+**Resolution:** Update to `title: "Block23 Gym"` and an appropriate description. Small fix, can be done any time.
 
-**Resolution:** V2 schema adds `User.deletedAt DateTime?` in Phase 1. Staff management UI is deferred, but the field is ready. NextAuth credential check must verify `deletedAt IS NULL`. **Scheduled for Phase 1.**
+---
+
+## Resolved
+
+Items in this section were identified as debt and subsequently fixed. Kept for historical reference.
+
+---
+
+### ~~ATT-01~~: Attendance creates duplicate client records — **RESOLVED Phase 2**
+
+`checkIn()` in `src/actions/attendance.ts` now looks up an existing client by `firstName + lastName` before creating a new record. `createWalkInClient()` also deduplicates by name. No duplicate client records are created for returning visitors.
+
+---
+
+### ~~ATT-02~~: Attendance.visitType is never set — **RESOLVED Phase 2**
+
+`checkIn()` now explicitly sets `visitType = isActiveMember ? "MEMBER" : "WALK_IN"` on every `tx.attendance.create()` call. The active membership check uses `membership.status === "ACTIVE" && membership.endDate > now`.
+
+---
+
+### ~~ATT-03~~: Walk-in fee hardcoded in attendance action — **RESOLVED Phase 3**
+
+`checkIn()` reads `GymSettings.defaultWalkInFee` before opening the transaction. `const WALK_IN_FEE = 100` constant has been removed. The attendance page fetches the fee from GymSettings and passes it to `AttendanceForm` as a prop.
+
+---
+
+### ~~MEM-02~~: Dead code in membership action file — **RESOLVED Phase 1**
+
+`src/actions/membership.ts` has been deleted. The incomplete `createMembership()` function no longer exists.
+
+---
+
+### ~~PAY-02~~: No payment method field — **RESOLVED Phase 1 + Phase 3**
+
+`PaymentMethod` enum (CASH, GCASH, PAYMAYA) added to schema in Phase 1. `Payment.paymentMethod` column added with `@default(CASH)`. All three membership creation actions and the walk-in check-in action now accept and store `paymentMethod`. UI selectors added to all three membership dialogs in Phase 3.
+
+---
+
+### ~~SCHEMA-01~~: Hard delete on Client — **RESOLVED Phase 1**
+
+`deleteClient()` in `src/actions/client.ts` now sets `deletedAt = new Date()` (soft delete) and writes an `AuditLog` entry with `action: "DELETE_CLIENT"` and `beforeState` in the same transaction. All active-client queries filter `where: { deletedAt: null }`.
+
+---
+
+### ~~SCHEMA-03~~: No soft delete on User — **RESOLVED Phase 1**
+
+`User.deletedAt DateTime?` added to schema. The NextAuth credentials provider in `src/auth.ts` filters `deletedAt: null` when looking up the user during login.
 
 ---
 
 ## Debt by Phase (Resolution Mapping)
 
-| Debt Item | Resolved In | ADR |
-|---|---|---|
-| ATT-01 Duplicate clients | Phase 2 (Attendance Rebuild) | — |
-| ATT-02 visitType never set | Phase 2 (Attendance Rebuild) | — |
-| ATT-03 Walk-in fee hardcoded | Phase 3 (Payments / Settings) | — |
-| MEM-01 Membership fee hardcoded | Phase 1 schema + Phase 5 UI | ADR-002 |
-| MEM-02 Dead membership action | Phase 1 (delete the file) | — |
-| AUTH-01 RBAC not enforced | Phase 6 (RBAC) | — |
-| PAY-01 Status always PAID | Phase 3 (Payments) | — |
-| PAY-02 No payment method field | Phase 1 (Schema Redesign) | ADR-004 |
-| SCHEMA-01 Hard delete on Client | Phase 1 (Schema Redesign) | ADR-001 |
-| SCHEMA-02 GymSettings unused | Phase 3–5 (incrementally) | — |
-| SCHEMA-03 No User soft delete | Phase 1 (Schema Redesign) | ADR-001 |
-| CODE-01 Form logic duplication | Phase 9 (UI Improvements) | — |
-| CODE-02 Commented-out code | Phase 9 (UI Improvements) | — |
-| CODE-03 Hardcoded KPI colors | Phase 9 (UI Improvements) | — |
-| CODE-04 Login error color | Phase 9 (UI Improvements) | — |
-| CODE-05 No form library | Phase 9 (UI Improvements) | — |
-| CODE-06 Decimal serialization | Phase 2–3 (during action refactors) | — |
-| CODE-07 Magic number (7 days) | Phase 1 constant + Phase 5 GymSettings | — |
-| INFRA-01 NextAuth beta | Monitor — upgrade when stable | — |
-| INFRA-02 No error/loading pages | Phase 9 (UI Improvements) | — |
-| UI-01 Spacing inconsistency | Phase 9 (UI Improvements) | — |
-| UI-02 Sky color in dialog | Phase 9 (UI Improvements) | — |
-| UI-03 No accessibility audit | Phase 9 (UI Improvements) | — |
+| Debt Item | Status | Resolved In | ADR |
+|---|---|---|---|
+| ATT-01 Duplicate clients | ✅ Resolved | Phase 2 | — |
+| ATT-02 visitType never set | ✅ Resolved | Phase 2 | — |
+| ATT-03 Walk-in fee hardcoded | ✅ Resolved | Phase 3 | — |
+| MEM-01 Membership fee hardcoded | 🔴 Open | Phase 5 | ADR-002 |
+| MEM-02 Dead membership action | ✅ Resolved | Phase 1 | — |
+| AUTH-01 RBAC incomplete | 🔴 Open | Phase 6 | — |
+| PAY-01 Status always PAID | 🟡 Acceptable | Phase 3 (partial) | — |
+| PAY-02 No payment method field | ✅ Resolved | Phase 1 + Phase 3 | ADR-004 |
+| SCHEMA-01 Hard delete on Client | ✅ Resolved | Phase 1 | ADR-001 |
+| SCHEMA-02 GymSettings unused | 🟡 Partial | Phase 5 (remaining) | — |
+| SCHEMA-03 No User soft delete | ✅ Resolved | Phase 1 | ADR-001 |
+| CODE-01 Form logic duplication | 🔴 Open | Phase 5/9 | — |
+| CODE-02 Commented-out code | 🔴 Open | Phase 9 | — |
+| CODE-03 Hardcoded KPI colors | 🔴 Open | Phase 9 | — |
+| CODE-04 Login error color | 🔴 Open | Phase 9 | — |
+| CODE-05 No form library | 🔴 Open | Phase 9 | — |
+| CODE-06 Decimal serialization | 🔴 Open | Phase 5 | — |
+| CODE-07 Magic number (7 days) | 🟡 Partial | Phase 5 (remaining) | — |
+| CODE-08 planId not passed | 🔴 Open | Phase 5 | ADR-002 |
+| INFRA-01 NextAuth beta | 🟡 Monitor | When stable | — |
+| INFRA-02 No error/loading pages | 🔴 Open | Phase 9 | — |
+| UI-01 Spacing inconsistency | 🔴 Open | Phase 9 | — |
+| UI-02 Sky color in dialog | 🔴 Open | Phase 9 | — |
+| UI-03 No accessibility audit | 🔴 Open | Phase 9 | — |
+| UI-04 Layout metadata placeholder | 🔴 Open | Any time | — |

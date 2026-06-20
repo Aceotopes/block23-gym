@@ -14,9 +14,9 @@
 | Version | Status | Notes |
 |---|---|---|
 | V1 | Superseded | Original MVP schema. No MembershipPlan, no soft delete, no PaymentMethod. |
-| V2 | Specified — pending Phase 1 migration | All decisions finalized. See ADRs in `docs/adr/`. |
+| V2 | **Current — live as of 2026-06-20** | Implemented in Phase 1. All models match `prisma/schema.prisma`. |
 
-This document describes the **V2 schema** — the authoritative specification for Phase 1 implementation. The Prisma schema file (`prisma/schema.prisma`) must match this document after Phase 1 is complete.
+This document describes the **V2 schema** — the live schema as of Phase 1 completion. `prisma/schema.prisma` matches this document exactly.
 
 ---
 

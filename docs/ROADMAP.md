@@ -15,12 +15,14 @@
 |---|---|
 | Authentication | Working (~95%) |
 | Clients CRUD | Complete (~100%) |
-| Membership lifecycle | Working (~90%) |
-| Attendance | Broken (~40%) |
-| Payments | Not implemented (0%) |
-| Dashboard | Not implemented (~5%) |
-| Settings | Not implemented (0%) |
-| Role enforcement | Not implemented (0%) |
+| Membership lifecycle | Working (~85%) — planId not passed yet (CODE-08) |
+| Attendance | ✅ Complete (~90%) — Phase 2 done |
+| Payments | ✅ Complete (~95%) — Phase 3 done |
+| Audit logging | Partial (~60%) — actions log; no view UI yet |
+| Dashboard | Not started (~5%) |
+| Settings | Not started (0%) |
+| GymSettings integration | Partial (~40%) — walk-in fee connected; rest in Phase 5 |
+| Role enforcement | Partial (~20%) — `editPayment` enforced; `deleteClient` not yet |
 | CI/CD | Not implemented (0%) |
 
 ---
@@ -186,18 +188,32 @@ Code changes in Phase 1 (alongside schema):
 
 ## Phase 9 — UI & Design System Improvements
 
-**Goal:** Address accumulated design debt and establish consistent patterns across all pages.
+**Goal:** Apply the complete design system specified in `docs/DESIGN_SYSTEM.md` (Iron & Gold — Authoritative direction) and address accumulated design debt.
 
-**Planned improvements:**
+**Design system decisions:** All 16 design decisions are finalized. See `docs/DESIGN_SYSTEM.md` for the full specification including color tokens, typography (Bebas Neue display font + Geist body), component patterns, and the Phase 9 implementation checklist.
 
-- Replace all hardcoded color classes (e.g., `bg-blue-500/10`) with design token classes
-- Fix `text-red-500` in login page → `text-destructive`
-- Extract membership plan selection and membership summary into shared reusable components
-- Standardize spacing: all pages to use `p-6` wrapper (remove the `p-10` anomaly)
-- Introduce `react-hook-form` for complex multi-field forms (reduce dialog component sizes)
-- Remove ~80 lines of commented-out code in `view-client-dialog.tsx`
-- Add `error.tsx` and `loading.tsx` files to key route segments
-- Accessibility pass: icon aria-labels, keyboard navigation review
+**Deliverables:**
+
+New components to create:
+- `src/components/ui/plan-selector.tsx` — RadioCard plan tile component (replaces Select dropdown in 3 dialogs)
+- `src/components/ui/status-badge.tsx` — semantic status badge wrapper
+
+Files to update (from `docs/DESIGN_SYSTEM.md` §9):
+- `src/app/globals.css` — replace achromatic tokens with full Iron & Gold token set
+- `src/app/layout.tsx` — add Bebas Neue font; fix placeholder metadata (UI-04)
+- `src/app/(auth)/login/page.tsx` — dark full-screen login layout; fix `text-red-500` (CODE-04)
+- `src/components/dashboard/sidebar.tsx` — permanent dark sidebar, gold active pill
+- `src/components/clients/client-kpi-cards.tsx` — horizontal compact layout, Bebas Neue numbers, semantic tokens (CODE-03)
+- Three membership dialogs — replace Select with PlanSelector
+- Three data tables (clients, attendance, payments) — row height, header style, StatusBadge
+- `src/components/clients/view-client-dialog.tsx` — remove 80 lines of commented-out code (CODE-02)
+- `src/components/payments/payments-summary.tsx` — Bebas Neue totals, gold for revenue number
+
+Additional improvements:
+- Standardize all pages to `p-6` wrapper (UI-01)
+- Add `error.tsx` and `loading.tsx` to key route segments (INFRA-02)
+- Skeleton loaders for async content (payments table, client payment history dialog)
+- Accessibility pass: all icon-only buttons get Radix Tooltip (UI-03)
 
 ---
 
