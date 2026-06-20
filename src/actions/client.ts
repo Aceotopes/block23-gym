@@ -3,8 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { createClientSchema } from "@/lib/validations/client";
-import { DateValues } from "date-fns";
 import { formatName } from "@/lib/format-name";
+import { auth } from "@/auth";
 
 // type CreateWalkInClientInput = {
 //   firstName: string;
@@ -40,6 +40,7 @@ export async function createWalkInClient(data: unknown) {
     where: {
       firstName,
       lastName,
+      deletedAt: null,
     },
   });
 
@@ -88,6 +89,7 @@ export async function createMember(data: CreateMemberInput) {
     where: {
       firstName,
       lastName,
+      deletedAt: null,
     },
   });
 
@@ -156,6 +158,7 @@ export async function updateClient(data: {
     where: {
       firstName,
       lastName,
+      deletedAt: null,
 
       NOT: {
         id: data.id,
@@ -275,31 +278,30 @@ export async function renewMembership(data: RenewMembershipInput) {
 }
 
 export async function deleteClient(clientId: string) {
-  await prisma.$transaction([
-    prisma.attendance.deleteMany({
-      where: {
-        clientId,
-      },
-    }),
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
 
-    prisma.payment.deleteMany({
-      where: {
-        clientId,
-      },
-    }),
+  await prisma.$transaction(async (tx) => {
+    const client = await tx.client.findUniqueOrThrow({
+      where: { id: clientId },
+      select: { id: true, firstName: true, lastName: true, phone: true, createdAt: true },
+    });
 
-    prisma.membership.deleteMany({
-      where: {
-        clientId,
-      },
-    }),
+    await tx.client.update({
+      where: { id: clientId },
+      data: { deletedAt: new Date() },
+    });
 
-    prisma.client.delete({
-      where: {
-        id: clientId,
+    await tx.auditLog.create({
+      data: {
+        userId,
+        action: "DELETE_CLIENT",
+        entityType: "Client",
+        entityId: clientId,
+        beforeState: client,
       },
-    }),
-  ]);
+    });
+  });
 
   revalidatePath("/clients");
 }

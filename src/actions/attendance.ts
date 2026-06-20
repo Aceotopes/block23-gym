@@ -17,16 +17,18 @@ export async function createWalkInAttendance(
     const client = await tx.client.create({
       data: {
         firstName,
-        lastName,
-        phone,
+        lastName: lastName ?? "",
+        phone: phone ?? null,
       },
     });
 
     // Create attendance
+    // ATT-02: visitType set to WALK_IN here as a minimal fix; full rebuild in Phase 2
 
     await tx.attendance.create({
       data: {
         clientId: client.id,
+        visitType: "WALK_IN",
       },
     });
 

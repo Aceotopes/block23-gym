@@ -1,3 +1,6 @@
+// Phase 5: replace with live GymSettings.walkInActiveDays value
+const WALK_IN_ACTIVE_DAYS = 7;
+
 export function getClientType(hasMembership: boolean) {
   return hasMembership ? "MEMBER" : "WALK_IN";
 }
@@ -25,9 +28,8 @@ export function getClientStatus(client: {
     return "INACTIVE";
   }
 
-  const sevenDaysAgo = new Date();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - WALK_IN_ACTIVE_DAYS);
 
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  return latestAttendance.timeIn >= sevenDaysAgo ? "ACTIVE" : "INACTIVE";
+  return latestAttendance.timeIn >= cutoff ? "ACTIVE" : "INACTIVE";
 }

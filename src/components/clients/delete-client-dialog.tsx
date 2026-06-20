@@ -73,10 +73,10 @@ export function DeleteClientDialog({ client }: Props) {
           </div>
 
           <AlertDialogTitle className="w-full text-center text-xl">
-            Permanently Delete Client
+            Delete Client
           </AlertDialogTitle>
           <AlertDialogDescription className="w-full text-center">
-            This action cannot be undone.
+            This client will be removed from active records. Their history is preserved.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -103,42 +103,34 @@ export function DeleteClientDialog({ client }: Props) {
         <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4">
           <h4 className="mb-3 flex items-center gap-2 font-medium text-destructive">
             <Trash2 className="h-4 w-4" />
-            Data That Will Be Deleted
+            What Happens
           </h4>
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <User className="h-4 w-4 text-muted-foreground" />
 
-              <span className="text-sm">Client profile information</span>
+              <span className="text-sm">Client removed from active records</span>
             </div>
 
             <div className="flex items-center gap-3">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
 
-              <span className="text-sm">Membership history</span>
+              <span className="text-sm">Membership history retained</span>
             </div>
 
             <div className="flex items-center gap-3">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
 
-              <span className="text-sm">Payment records</span>
+              <span className="text-sm">Payment records retained</span>
             </div>
 
             <div className="flex items-center gap-3">
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
 
-              <span className="text-sm">Attendance records</span>
+              <span className="text-sm">Attendance records retained</span>
             </div>
           </div>
-        </div>
-
-        {/* Warning */}
-
-        <div className="rounded-lg border-l-4 border-destructive bg-muted/100 p-3">
-          <p className="text-sm">
-            Once deleted, this client's history cannot be recovered.
-          </p>
         </div>
 
         <AlertDialogFooter>

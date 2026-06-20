@@ -27,29 +27,32 @@ type Props = {
 
 export default async function ClientsPage({ searchParams }: Props) {
   const { search, type, status } = await searchParams;
-  const where: Prisma.ClientWhereInput = search
-    ? {
-        OR: [
-          {
-            firstName: {
-              contains: search,
-              mode: "insensitive",
+  const where: Prisma.ClientWhereInput = {
+    deletedAt: null,
+    ...(search
+      ? {
+          OR: [
+            {
+              firstName: {
+                contains: search,
+                mode: "insensitive",
+              },
             },
-          },
-          {
-            lastName: {
-              contains: search,
-              mode: "insensitive",
+            {
+              lastName: {
+                contains: search,
+                mode: "insensitive",
+              },
             },
-          },
-          {
-            phone: {
-              contains: search,
+            {
+              phone: {
+                contains: search,
+              },
             },
-          },
-        ],
-      }
-    : {};
+          ],
+        }
+      : {}),
+  };
 
   const clients = await prisma.client.findMany({
     where,

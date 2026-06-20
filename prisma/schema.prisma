@@ -12,16 +12,18 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      Role     @default(STAFF)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      Role      @default(STAFF)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts  Account[]
+  sessions  Session[]
+  auditLogs AuditLog[]
 }
 
 enum Role {
@@ -71,19 +73,21 @@ model VerificationToken {
 
 // MEMBER TABLE
 model Client {
-  id              String          @id @default(cuid())
+  id        String    @id @default(cuid())
 
-  firstName       String
-  lastName        String
+  firstName String
+  lastName  String
 
-  phone           String?
+  phone     String?
 
-  attendances     Attendance[]
-  payments        Payment[]
-  memberships     Membership[]
+  deletedAt DateTime?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  attendances Attendance[]
+  payments    Payment[]
+  memberships Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([firstName])
   @@index([lastName])
@@ -91,68 +95,105 @@ model Client {
 }
 
 model Attendance {
-  id              String          @id @default(cuid())
+  id       String    @id @default(cuid())
 
-  clientId        String
-  client          Client          @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client    @relation(fields: [clientId], references: [id])
 
-  visitType       VisitType
+  visitType VisitType
 
-  timeIn          DateTime        @default(now())
-  timeOut         DateTime?
+  timeIn  DateTime  @default(now())
+  timeOut DateTime?
 
-  createdAt       DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([clientId])
   @@index([timeIn])
 }
 
 model Payment {
-  id              String          @id @default(cuid())
+  id       String @id @default(cuid())
 
-  clientId        String
-  client          Client          @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
-  amount          Decimal         @db.Decimal(10,2)
+  amount Decimal @db.Decimal(10, 2)
 
-  type            PaymentType
-  status          PaymentStatus
+  type          PaymentType
+  status        PaymentStatus
+  paymentMethod PaymentMethod @default(CASH)
+  notes         String?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Membership {
-  id              String              @id @default(cuid())
+  id       String @id @default(cuid())
 
-  clientId        String
-  client          Client              @relation(fields: [clientId], references: [id])
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id])
 
-  durationInDays  Int
+  planId String?
+  plan   MembershipPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
 
-  amountPaid      Decimal             @db.Decimal(10,2)
+  durationInDays Int
 
-  startDate       DateTime
-  endDate         DateTime
+  amountPaid Decimal @db.Decimal(10, 2)
 
-  status          MembershipStatus    @default(ACTIVE)
+  startDate DateTime
+  endDate   DateTime
 
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  status MembershipStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([clientId])
   @@index([status])
 }
 
+model MembershipPlan {
+  id             String  @id @default(cuid())
+  name           String
+  durationInDays Int
+  price          Decimal @db.Decimal(10, 2)
+  isActive       Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  memberships Membership[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id     String  @id @default(cuid())
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action      AuditAction
+  entityType  String
+  entityId    String
+  beforeState Json?
+
+  createdAt DateTime @default(now())
+}
+
 model GymSettings {
-  id                     String    @id
+  id String @id
 
-  defaultMonthlyFee      Decimal   @db.Decimal(10,2) @default(1200)
+  gymName      String  @default("Block23 Gym")
+  address      String?
+  contactEmail String?
+  contactPhone String?
 
-  defaultWalkInFee       Decimal   @db.Decimal(10,2) @default(100)
+  defaultMonthlyFee Decimal @db.Decimal(10, 2) @default(1200)
+  defaultWalkInFee  Decimal @db.Decimal(10, 2) @default(100)
+  walkInActiveDays  Int     @default(7)
 
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum VisitType {
@@ -172,8 +213,19 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PaymentMethod {
+  CASH
+  GCASH
+  PAYMAYA
+}
+
 enum MembershipStatus {
   ACTIVE
   EXPIRED
   CANCELLED
+}
+
+enum AuditAction {
+  DELETE_CLIENT
+  EDIT_PAYMENT
 }
