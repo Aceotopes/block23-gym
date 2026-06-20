@@ -1,0 +1,49 @@
+feat(dashboard): build analytics dashboard with KPI cards, trend charts, and expiring memberships
+
+Implements Phase 4. See docs/logs/2026-06-20-phase-4-dashboard.md.
+
+pnpm-lock.yaml:
+- Add recharts 3.8.1 (installed via pnpm — project does not use npm)
+
+src/app/(dashboard)/dashboard/page.tsx:
+- Rewrite from "use client" logout stub to full React Server Component
+- Remove logout button — navbar already handles this
+- 8 parallel Prisma queries via Promise.all: today's attendance, active member
+  count, walk-ins this month, current + previous month payments, expiring
+  memberships next 30 days, attendance last 30 days, payments last 12 months
+- JS aggregation for chart data: eachDayOfInterval fills zero-attendance days;
+  eachMonthOfInterval fills zero-revenue months — no gaps in charts
+- Revenue delta: (current - prev) / prev * 100, rounded; null when no prev data
+- Decimal amounts converted with Number() before arithmetic
+- No Date objects passed to client components — chart data uses string keys only
+
+src/components/dashboard/dashboard-kpi-cards.tsx (new):
+- Server component; 4-column responsive grid (1 → 2 → 4 at sm/lg breakpoints)
+- Cards: today total (members · walk-ins subtext), active members, walk-ins this
+  month, revenue this month with ▲/▼ trend arrow and delta % vs last month
+- TrendingUp/TrendingDown icon from lucide-react; green/red delta color
+
+src/components/dashboard/expiring-memberships.tsx (new):
+- Server component; receives Date objects directly (safe: server → server)
+- differenceInDays per row; badge: red ≤7d, amber ≤14d, gray >14d
+- Pre-sorted asc from Prisma query; empty state when no results; capped at 10
+
+src/components/dashboard/attendance-chart.tsx (new):
+- Client component ("use client"); receives { date: string, count: number }[]
+- Recharts ResponsiveContainer > BarChart; horizontal grid only; interval={6}
+  on X-axis to avoid label overlap; bars fill var(--foreground)
+- Tooltip formatter: (value) => [value ?? 0, "Check-ins"] — Recharts 3 types
+  formatter value as ValueType | undefined, not number
+
+src/components/dashboard/revenue-chart.tsx (new):
+- Client component ("use client"); receives { month: string, revenue: number }[]
+- Y-axis tickFormatter: v => `₱${(v/1000).toFixed(0)}k` for compact axis labels
+- Tooltip shows full ₱XX,XXX value; maxBarSize={28}
+- Same Recharts 3 formatter fix as attendance chart
+
+Note: all Recharts SVG color props use var(--token) directly, not hsl(var(--token))
+— Tailwind v4 stores full oklch() values in variables, not HSL channels.
+
+Next: Phase 5 — Settings Page (MembershipPlan CRUD, GymSettings UI, fix CODE-08)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
