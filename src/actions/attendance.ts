@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { formatName } from "@/lib/format-name";
 
-// Phase 3: connect to GymSettings.defaultWalkInFee
-const WALK_IN_FEE = 100;
 
 export type ClientSearchResult = {
   id: string;
@@ -74,6 +72,12 @@ export type CheckInInput =
     };
 
 export async function checkIn(data: CheckInInput) {
+  const settings = await prisma.gymSettings.findUniqueOrThrow({
+    where: { id: "default-settings" },
+    select: { defaultWalkInFee: true },
+  });
+  const walkInFee = Number(settings.defaultWalkInFee);
+
   await prisma.$transaction(async (tx) => {
     let clientId: string;
     let displayName: string;
@@ -140,7 +144,7 @@ export async function checkIn(data: CheckInInput) {
       await tx.payment.create({
         data: {
           clientId,
-          amount: WALK_IN_FEE,
+          amount: walkInFee,
           type: "WALK_IN",
           status: "PAID",
           paymentMethod: pm,

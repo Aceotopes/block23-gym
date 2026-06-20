@@ -32,8 +32,6 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "PAYMAYA", label: "PayMaya" },
 ];
 
-const WALK_IN_FEE = 100;
-
 function ClientStatusBadge({ client }: { client: ClientSearchResult }) {
   if (client.isActiveMember)
     return <Badge variant="default">Active Member</Badge>;
@@ -69,7 +67,7 @@ function PaymentMethodSelector({
   );
 }
 
-export function AttendanceForm() {
+export function AttendanceForm({ walkInFee }: { walkInFee: number }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -318,7 +316,7 @@ export function AttendanceForm() {
                       : "Walk-In"}
                   </p>
                   <p className="text-muted-foreground">
-                    Fee: ₱{WALK_IN_FEE.toLocaleString()}.00
+                    Fee: ₱{walkInFee.toLocaleString()}.00
                   </p>
                 </div>
 
@@ -401,7 +399,7 @@ export function AttendanceForm() {
             <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
               <p className="font-medium">Walk-In Fee</p>
               <p className="text-muted-foreground">
-                ₱{WALK_IN_FEE.toLocaleString()}.00
+                ₱{walkInFee.toLocaleString()}.00
               </p>
             </div>
 

@@ -54,6 +54,9 @@ export function RenewMembershipDialog({ client }: Props) {
   >("ONE_MONTH");
   const [durationInDays, setDurationInDays] = useState(30);
   const [monthlyFee, setMonthlyFee] = useState(1200);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "GCASH" | "PAYMAYA"
+  >("CASH");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -98,6 +101,7 @@ export function RenewMembershipDialog({ client }: Props) {
     setMembershipPlan("ONE_MONTH");
     setDurationInDays(30);
     setMonthlyFee(1200);
+    setPaymentMethod("CASH");
   }
 
   async function handleSubmit() {
@@ -110,6 +114,7 @@ export function RenewMembershipDialog({ client }: Props) {
         durationInDays,
 
         amountPaid: totalAmount,
+        paymentMethod,
 
         startDate: renewalStartDate,
         endDate: renewalEndDate,
@@ -247,6 +252,24 @@ export function RenewMembershipDialog({ client }: Props) {
                   value={monthlyFee}
                   onChange={(e) => setMonthlyFee(Number(e.target.value))}
                 />
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="space-y-1.5">
+              <Label>Payment Method</Label>
+              <div className="flex gap-2">
+                {(["CASH", "GCASH", "PAYMAYA"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    type="button"
+                    variant={paymentMethod === m ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setPaymentMethod(m)}
+                  >
+                    {m === "CASH" ? "Cash" : m === "GCASH" ? "GCash" : "PayMaya"}
+                  </Button>
+                ))}
               </div>
             </div>
           </div>

@@ -48,6 +48,9 @@ export function ConvertToMemberDialog({ client }: Props) {
   const [membershipPlan, setMembershipPlan] = useState<
     "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS"
   >("ONE_MONTH");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "GCASH" | "PAYMAYA"
+  >("CASH");
 
   useEffect(() => {
     switch (membershipPlan) {
@@ -83,6 +86,7 @@ export function ConvertToMemberDialog({ client }: Props) {
         durationInDays,
 
         amountPaid: totalAmount,
+        paymentMethod,
 
         startDate,
         endDate,
@@ -207,6 +211,24 @@ export function ConvertToMemberDialog({ client }: Props) {
                   value={monthlyFee}
                   onChange={(e) => setMonthlyFee(Number(e.target.value))}
                 />
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="space-y-1.5">
+              <Label>Payment Method</Label>
+              <div className="flex gap-2">
+                {(["CASH", "GCASH", "PAYMAYA"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    type="button"
+                    variant={paymentMethod === m ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setPaymentMethod(m)}
+                  >
+                    {m === "CASH" ? "Cash" : m === "GCASH" ? "GCash" : "PayMaya"}
+                  </Button>
+                ))}
               </div>
             </div>
           </div>

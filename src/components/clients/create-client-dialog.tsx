@@ -43,6 +43,9 @@ export function CreateClientDialog() {
   const [membershipPlan, setMembershipPlan] = useState<
     "ONE_MONTH" | "TWO_MONTHS" | "THREE_MONTHS"
   >("ONE_MONTH");
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "GCASH" | "PAYMAYA"
+  >("CASH");
   const [durationInDays, setDurationInDays] = useState(30);
   const [monthlyFee, setMonthlyFee] = useState(1200);
 
@@ -88,6 +91,7 @@ export function CreateClientDialog() {
 
     setMembershipPlan("ONE_MONTH");
     setMonthlyFee(1200);
+    setPaymentMethod("CASH");
   }
 
   async function handleSubmit() {
@@ -125,6 +129,7 @@ export function CreateClientDialog() {
             durationInDays,
 
             amountPaid: totalAmount,
+            paymentMethod,
 
             startDate,
             endDate,
@@ -371,6 +376,24 @@ export function CreateClientDialog() {
                       <span>Total Amount</span>
                       <span>₱{totalAmount.toLocaleString()}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* PAYMENT METHOD */}
+                <div className="space-y-1.5">
+                  <Label>Payment Method</Label>
+                  <div className="flex gap-2">
+                    {(["CASH", "GCASH", "PAYMAYA"] as const).map((m) => (
+                      <Button
+                        key={m}
+                        type="button"
+                        variant={paymentMethod === m ? "default" : "outline"}
+                        className="flex-1"
+                        onClick={() => setPaymentMethod(m)}
+                      >
+                        {m === "CASH" ? "Cash" : m === "GCASH" ? "GCash" : "PayMaya"}
+                      </Button>
+                    ))}
                   </div>
                 </div>
               </div>

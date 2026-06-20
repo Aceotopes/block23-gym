@@ -1,0 +1,80 @@
+feat(payments): build payments page, per-client history, payment editing, and complete payment method recording
+
+Implements Phase 3. See docs/logs/2026-06-20-phase-3-payments-page.md.
+
+src/actions/payment.ts (new):
+- Add editPayment() — ADMIN-only; updates status and/or paymentMethod; writes
+  AuditLog(EDIT_PAYMENT) with beforeState in same transaction; revalidates /payments
+- Add getClientPayments(clientId) — returns all payments for a client ordered by
+  createdAt desc; serializes Decimal amount to number
+
+src/actions/attendance.ts:
+- Remove WALK_IN_FEE = 100 constant; read GymSettings.defaultWalkInFee before the
+  transaction (resolves ATT-03); convert Decimal to Number before use
+
+src/actions/client.ts:
+- Add paymentMethod ("CASH" | "GCASH" | "PAYMAYA") to CreateMemberInput,
+  convertToMember data param, and RenewMembershipInput
+- Pass paymentMethod to tx.payment.create in all three actions; previously all
+  membership payments recorded CASH regardless of actual method
+
+src/app/(dashboard)/payments/page.tsx:
+- Full server component; URL param ?period=today|week|month (default: today)
+- Two parallel Prisma queries: today's payments (summary card) + period payments (table)
+- Summary computed from paidToday only — PENDING/FAILED/REFUNDED excluded from totals
+- Breakdowns: total, cash, gcash, paymaya, membership count, walk-in count
+- Passes isAdmin to table (read from auth() session) for edit button visibility
+- Serializes Decimal amounts to Number before passing to client components
+
+src/app/(dashboard)/attendance/page.tsx:
+- Add GymSettings query (parallel with attendance query via Promise.all)
+- Pass walkInFee prop to AttendanceForm
+
+src/components/payments/payments-summary.tsx (new):
+- Daily cash summary card; always shows today; Cash/GCash/PayMaya breakdown cards
+
+src/components/payments/payments-filter.tsx (new):
+- Client component; 3 period buttons (Today / This Week / This Month)
+- Navigates via router.push; receives currentPeriod from server page as prop
+
+src/components/payments/payments-table.tsx (new):
+- Server component; renders transaction history table with date/client/type/method/
+  amount/status columns; empty state when no results
+- Imports EditPaymentDialog (client component) per row when isAdmin === true
+
+src/components/payments/edit-payment-dialog.tsx (new):
+- Client component; ADMIN-only edit dialog for status and paymentMethod
+- Resets selects to current values on open; toast on success/error
+
+src/components/clients/client-payment-history-dialog.tsx (new):
+- Client component; triggered from client actions dropdown
+- Lazily fetches via getClientPayments on open; loading state during fetch
+- Scrollable payment list with type/method/amount/status per row
+
+src/components/clients/client-actions-menu.tsx:
+- Add import for ClientPaymentHistoryDialog
+- Add "Payment History" dropdown item with separator above it
+
+src/components/attendance/attendance-form.tsx:
+- Accept walkInFee: number prop; remove WALK_IN_FEE constant; use prop throughout
+
+src/components/clients/create-client-dialog.tsx:
+- Add paymentMethod state (default: CASH); reset in resetForm()
+- Add 3-button payment method selector in MEMBER tab after summary
+- Pass paymentMethod to createMember()
+
+src/components/clients/renew-membership-dialog.tsx:
+- Add paymentMethod state (default: CASH); reset in resetForm()
+- Add payment method selector in Membership Setup section
+- Pass paymentMethod to renewMembership()
+
+src/components/clients/convert-to-member-dialog.tsx:
+- Add paymentMethod state (default: CASH); reset on dialog close
+- Add payment method selector in Membership Setup section
+- Pass paymentMethod to convertToMember()
+
+Debt resolved: ATT-03
+Partially resolved: PAY-01 (payment editing now possible; new payments still default PAID)
+Next: Phase 4 — Dashboard Analytics
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>

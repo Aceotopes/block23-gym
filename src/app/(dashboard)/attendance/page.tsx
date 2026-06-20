@@ -4,28 +4,36 @@ import { AttendanceForm } from "@/components/attendance/attendance-form";
 import { AttendanceTable } from "@/components/attendance/attendance-table";
 
 export default async function AttendancePage() {
-  const attendances = await prisma.attendance.findMany({
-    where: {
-      timeOut: null,
-    },
+  const [attendances, settings] = await Promise.all([
+    prisma.attendance.findMany({
+      where: {
+        timeOut: null,
+      },
 
-    select: {
-      id: true,
-      visitType: true,
-      timeIn: true,
-      client: {
-        select: {
-          firstName: true,
-          lastName: true,
-          phone: true,
+      select: {
+        id: true,
+        visitType: true,
+        timeIn: true,
+        client: {
+          select: {
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
         },
       },
-    },
 
-    orderBy: {
-      timeIn: "desc",
-    },
-  });
+      orderBy: {
+        timeIn: "desc",
+      },
+    }),
+    prisma.gymSettings.findUniqueOrThrow({
+      where: { id: "default-settings" },
+      select: { defaultWalkInFee: true },
+    }),
+  ]);
+
+  const walkInFee = Number(settings.defaultWalkInFee);
 
   return (
     <div className="space-y-6">
@@ -38,7 +46,7 @@ export default async function AttendancePage() {
         </p>
       </div>
 
-      <AttendanceForm />
+      <AttendanceForm walkInFee={walkInFee} />
 
       <AttendanceTable attendances={attendances} />
     </div>

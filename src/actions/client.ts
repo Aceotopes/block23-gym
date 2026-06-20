@@ -66,6 +66,7 @@ type CreateMemberInput = {
 
   durationInDays: number;
   amountPaid: number;
+  paymentMethod: "CASH" | "GCASH" | "PAYMAYA";
 
   startDate: Date;
   endDate: Date;
@@ -122,12 +123,10 @@ export async function createMember(data: CreateMemberInput) {
     await tx.payment.create({
       data: {
         clientId: client.id,
-
         amount: data.amountPaid,
-
         type: "MEMBERSHIP",
-
         status: "PAID",
+        paymentMethod: data.paymentMethod,
       },
     });
   });
@@ -189,6 +188,7 @@ export async function convertToMember(data: {
 
   durationInDays: number;
   amountPaid: number;
+  paymentMethod: "CASH" | "GCASH" | "PAYMAYA";
 
   startDate: Date;
   endDate: Date;
@@ -212,12 +212,10 @@ export async function convertToMember(data: {
     prisma.payment.create({
       data: {
         clientId: data.clientId,
-
         amount: data.amountPaid,
-
         type: "MEMBERSHIP",
-
         status: "PAID",
+        paymentMethod: data.paymentMethod,
       },
     }),
   ]);
@@ -229,6 +227,7 @@ type RenewMembershipInput = {
   clientId: string;
   durationInDays: number;
   amountPaid: number;
+  paymentMethod: "CASH" | "GCASH" | "PAYMAYA";
   startDate: Date;
   endDate: Date;
 };
@@ -264,12 +263,10 @@ export async function renewMembership(data: RenewMembershipInput) {
     await tx.payment.create({
       data: {
         clientId: data.clientId,
-
         amount: data.amountPaid,
-
         type: "MEMBERSHIP",
-
         status: "PAID",
+        paymentMethod: data.paymentMethod,
       },
     });
   });

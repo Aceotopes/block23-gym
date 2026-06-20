@@ -9,6 +9,7 @@ import { EditClientDialog } from "./edit-client-dialog";
 import { ConvertToMemberDialog } from "./convert-to-member-dialog";
 import { RenewMembershipDialog } from "./renew-membership-dialog";
 import { DeleteClientDialog } from "./delete-client-dialog";
+import { ClientPaymentHistoryDialog } from "./client-payment-history-dialog";
 
 import {
   DropdownMenu,
@@ -65,6 +66,8 @@ export function ClientActionsMenu({ client, type }: Props) {
         <DropdownMenuSeparator />
         {type === "WALK_IN" && <ConvertToMemberDialog client={client} />}
         {type === "MEMBER" && <RenewMembershipDialog client={client} />}
+        <DropdownMenuSeparator />
+        <ClientPaymentHistoryDialog client={client} />
       </DropdownMenuContent>
     </DropdownMenu>
   );
